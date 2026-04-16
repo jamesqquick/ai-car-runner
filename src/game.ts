@@ -1171,6 +1171,89 @@ function handleGamepad(): void {
   }
 }
 
+// ─── DEVICE TILT (Mobile Gyroscope) ──────────────────────────
+const TILT_THRESHOLD = 12; // degrees of tilt to trigger lane change
+let tiltLaneCooldown = false;
+let deviceGamma = 0; // left/right tilt in degrees
+
+// Check if we need to request permission (iOS 13+)
+function initTiltControls(): void {
+  if (typeof (DeviceOrientationEvent as any).requestPermission === "function") {
+    // iOS 13+ requires explicit permission
+    (DeviceOrientationEvent as any).requestPermission().then((state: string) => {
+      if (state === "granted") {
+        window.addEventListener("deviceorientation", onDeviceOrientation);
+      }
+    }).catch(() => {});
+  } else {
+    // Android and older iOS — just listen
+    window.addEventListener("deviceorientation", onDeviceOrientation);
+  }
+}
+
+function onDeviceOrientation(e: DeviceOrientationEvent): void {
+  if (e.gamma !== null) {
+    deviceGamma = e.gamma; // -90 to 90, 0 is flat
+  }
+}
+
+function handleTilt(): void {
+  if (gameState !== "playing" || tiltLaneCooldown) return;
+
+  if (deviceGamma < -TILT_THRESHOLD && currentLane > 0) {
+    currentLane--;
+    targetX = LANE_POSITIONS[currentLane];
+    tiltLaneCooldown = true;
+    setTimeout(() => (tiltLaneCooldown = false), 250);
+  } else if (deviceGamma > TILT_THRESHOLD && currentLane < LANE_COUNT - 1) {
+    currentLane++;
+    targetX = LANE_POSITIONS[currentLane];
+    tiltLaneCooldown = true;
+    setTimeout(() => (tiltLaneCooldown = false), 250);
+  }
+}
+
+// Request tilt permission on first user interaction (required by iOS)
+document.addEventListener("click", () => {
+  initTiltControls();
+}, { once: true });
+
+// Also try to init immediately for Android
+initTiltControls();
+
+// ─── TOUCH ARROW BUTTONS ─────────────────────────────────────
+const touchLeft = document.getElementById("touch-left");
+const touchRight = document.getElementById("touch-right");
+let touchCooldown = false;
+
+function touchMove(direction: "left" | "right"): void {
+  if (gameState !== "playing" || touchCooldown) return;
+  if (direction === "left" && currentLane > 0) {
+    currentLane--;
+    targetX = LANE_POSITIONS[currentLane];
+    touchCooldown = true;
+    setTimeout(() => (touchCooldown = false), 180);
+  } else if (direction === "right" && currentLane < LANE_COUNT - 1) {
+    currentLane++;
+    targetX = LANE_POSITIONS[currentLane];
+    touchCooldown = true;
+    setTimeout(() => (touchCooldown = false), 180);
+  }
+}
+
+if (touchLeft) {
+  touchLeft.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    touchMove("left");
+  }, { passive: false });
+}
+if (touchRight) {
+  touchRight.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    touchMove("right");
+  }, { passive: false });
+}
+
 // ─── GAME LIFECYCLE ──────────────────────────────────────────
 function startGame(): void {
   // Reset game state
@@ -1311,6 +1394,7 @@ function animate(): void {
 
   handleInput();
   handleGamepad();
+  handleTilt();
 
   // Update crash particles even when not playing
   updateCrashParticles(dt);
