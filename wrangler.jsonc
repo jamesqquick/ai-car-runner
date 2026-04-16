@@ -29,5 +29,8 @@
       "tag": "v1",
       "new_classes": ["SpectatorHub"]
     }
-  ]
+  ],
+  "ai": {
+    "binding": "AI"
+  }
 }

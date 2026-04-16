@@ -69,25 +69,6 @@ function renderHUDLeaderboard(): void {
     .join("");
 }
 
-function renderGameOverLeaderboard(playerRank: number | null): void {
-  const container = document.getElementById("gameover-leaderboard-entries")!;
-  if (leaderboardData.length === 0) {
-    container.innerHTML = `<div class="lb-entry" style="color: #444;">No scores yet</div>`;
-    return;
-  }
-  container.innerHTML = leaderboardData
-    .map(
-      (entry, i) => {
-        const isYou = playerRank !== null && i + 1 === playerRank && currentUser && entry.name === currentUser.name;
-        return `<div class="lb-entry${isYou ? " is-you" : ""}">
-          <span><span class="rank">#${i + 1}</span>${entry.name}${isYou ? " (you)" : ""}</span>
-          <span>${entry.score.toLocaleString()}</span>
-        </div>`;
-      }
-    )
-    .join("");
-}
-
 async function submitScore(userId: string, finalScore: number): Promise<number | null> {
   try {
     const res = await fetch("/api/score", {
@@ -112,7 +93,6 @@ const loginForm = document.getElementById("login-form") as HTMLFormElement;
 const loginNameInput = document.getElementById("login-name") as HTMLInputElement;
 const loginEmailInput = document.getElementById("login-email") as HTMLInputElement;
 const loginError = document.getElementById("login-error")!;
-const loggedInAs = document.getElementById("logged-in-as")!;
 
 loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -135,16 +115,95 @@ loginForm.addEventListener("submit", async (e) => {
     if (!res.ok) {
       loginError.textContent = data.error || "Login failed";
       btn.disabled = false;
-      btn.textContent = "START RACE";
+      btn.textContent = "CONTINUE";
       return;
     }
     currentUser = { id: data.id, name: data.name, email: data.email };
-    startGame();
+    showLobby();
   } catch {
     loginError.textContent = "Connection error";
     btn.disabled = false;
-    btn.textContent = "START RACE";
+    btn.textContent = "CONTINUE";
   }
+});
+
+// ─── LOBBY SCREEN ────────────────────────────────────────────
+const lobbyScreen = document.getElementById("lobby-screen")!;
+const lobbyPlayerName = document.getElementById("lobby-player-name")!;
+const lobbyLeaderboardEntries = document.getElementById("lobby-leaderboard-entries")!;
+const lobbyStartBtn = document.getElementById("lobby-start-btn")!;
+const commentaryToggle = document.getElementById("commentary-toggle") as HTMLInputElement;
+
+function showLobby(crashScore?: number, crashRank?: number | null): void {
+  document.getElementById("start-screen")!.style.display = "none";
+  lobbyScreen.style.display = "flex";
+  gameState = "start";
+
+  // Show player name
+  if (currentUser) {
+    lobbyPlayerName.textContent = `Playing as ${currentUser.name}`;
+  }
+
+  // Crash result section
+  const crashResult = document.getElementById("lobby-crash-result")!;
+  if (crashScore !== undefined) {
+    crashResult.classList.add("visible");
+    document.getElementById("lobby-crash-score")!.textContent = String(crashScore);
+
+    const rankEl = document.getElementById("lobby-crash-rank")!;
+    const congratsEl = document.getElementById("lobby-crash-congrats")!;
+
+    if (crashRank) {
+      rankEl.textContent = `Rank #${crashRank}`;
+      if (crashRank === 1) {
+        congratsEl.textContent = "NEW HIGH SCORE!";
+      } else if (crashRank <= 10) {
+        congratsEl.textContent = "TOP 10 FINISH!";
+      } else {
+        congratsEl.textContent = "";
+      }
+    } else {
+      rankEl.textContent = "";
+      congratsEl.textContent = "";
+    }
+
+    lobbyStartBtn.textContent = "Race Again";
+  } else {
+    crashResult.classList.remove("visible");
+    lobbyStartBtn.textContent = "Start Race";
+  }
+
+  // Render leaderboard in lobby
+  renderLobbyLeaderboard();
+}
+
+function renderLobbyLeaderboard(): void {
+  if (leaderboardData.length === 0) {
+    lobbyLeaderboardEntries.innerHTML = `<div class="lb-entry" style="color: #444;">No scores yet</div>`;
+    return;
+  }
+  lobbyLeaderboardEntries.innerHTML = leaderboardData
+    .slice(0, 10)
+    .map(
+      (entry, i) => {
+        const isYou = currentUser && entry.name === currentUser.name;
+        return `<div class="lb-entry${isYou ? " is-you" : ""}">
+          <span><span class="rank">#${i + 1}</span>${entry.name}${isYou ? " (you)" : ""}</span>
+          <span>${entry.score.toLocaleString()}</span>
+        </div>`;
+      }
+    )
+    .join("");
+}
+
+lobbyStartBtn.addEventListener("click", () => {
+  startGame();
+});
+
+// Sync commentary toggle
+commentaryToggle.addEventListener("change", () => {
+  commentaryEnabled = commentaryToggle.checked;
+  ttsEnabled = commentaryToggle.checked;
 });
 
 // Fetch leaderboard on page load
@@ -211,6 +270,92 @@ function stopSpectatorUpdates(): void {
 
 // Connect on page load
 connectSpectatorHub();
+
+// ─── AI COMMENTARY ───────────────────────────────────────────
+const commentaryOverlay = document.getElementById("commentary-overlay")!;
+const commentaryText = document.getElementById("commentary-text")!;
+let commentaryTimer: ReturnType<typeof setTimeout> | null = null;
+let commentaryInFlight = false;
+let commentaryEnabled = false;
+let lastSpeedMilestone = 0;
+let lastDistanceMilestone = 0;
+
+async function requestCommentary(
+  event: string,
+  context: Record<string, unknown> = {}
+): Promise<void> {
+  // Skip if commentary is disabled or a request is already pending
+  if (!commentaryEnabled || commentaryInFlight) return;
+  commentaryInFlight = true;
+
+  try {
+    const res = await fetch("/api/commentary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event, context }),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { commentary: string };
+      if (data.commentary) {
+        showCommentary(data.commentary);
+        speakCommentary(data.commentary);
+      }
+    }
+  } catch {
+    // silent fail
+  } finally {
+    commentaryInFlight = false;
+  }
+}
+
+function showCommentary(text: string): void {
+  // Clear existing timer
+  if (commentaryTimer) clearTimeout(commentaryTimer);
+
+  commentaryText.textContent = text;
+  commentaryOverlay.classList.add("visible");
+
+  // Hide after 4 seconds
+  commentaryTimer = setTimeout(() => {
+    commentaryOverlay.classList.remove("visible");
+  }, 4000);
+}
+
+// ─── BROWSER TTS ─────────────────────────────────────────────
+let ttsEnabled = false;
+
+function speakCommentary(text: string): void {
+  if (!ttsEnabled || !window.speechSynthesis) return;
+
+  // Cancel any current speech
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1.1;
+  utterance.pitch = 1.05;
+  utterance.volume = 0.9;
+
+  // Try to pick a good English voice
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(
+    (v) => v.lang.startsWith("en") && v.name.includes("Daniel")
+  ) || voices.find(
+    (v) => v.lang.startsWith("en") && !v.name.includes("Google")
+  ) || voices.find(
+    (v) => v.lang.startsWith("en")
+  );
+  if (preferred) utterance.voice = preferred;
+
+  window.speechSynthesis.speak(utterance);
+}
+
+// Preload voices (some browsers load them async)
+if (window.speechSynthesis) {
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+  };
+}
 
 // ─── STATE ───────────────────────────────────────────────────
 let gameState: "start" | "playing" | "gameover" = "start";
@@ -958,12 +1103,13 @@ function checkNearMiss(): boolean {
 const keys: Record<string, boolean> = {};
 window.addEventListener("keydown", (e) => {
   keys[e.code] = true;
-  // Only allow keyboard restart on game over (login form handles start)
+  // Lobby: Enter/Space starts the race (only if lobby is visible)
   if (
-    gameState === "gameover" &&
+    gameState === "start" &&
+    lobbyScreen.style.display === "flex" &&
     (e.code === "Enter" || e.code === "Space")
   ) {
-    resetGame();
+    startGame();
   }
 });
 window.addEventListener("keyup", (e) => {
@@ -998,11 +1144,11 @@ function handleGamepad(): void {
   if (!gamepads) return;
   for (const gp of gamepads) {
     if (!gp) continue;
-    // Gamepad button to restart (not bypass login)
-    if (gameState === "gameover") {
+    // Gamepad button: lobby -> start game
+    if (gameState === "start" && lobbyScreen.style.display === "flex") {
       for (const btn of gp.buttons) {
         if (btn.pressed) {
-          resetGame();
+          startGame();
           return;
         }
       }
@@ -1027,9 +1173,39 @@ function handleGamepad(): void {
 
 // ─── GAME LIFECYCLE ──────────────────────────────────────────
 function startGame(): void {
-  gameState = "playing";
+  // Reset game state
+  obstacles.forEach((obs) => scene.remove(obs));
+  obstacles = [];
+  sceneryItems.forEach((item) => scene.remove(item));
+  sceneryItems = [];
+
+  score = 0;
+  speed = INITIAL_SPEED;
+  currentLane = Math.floor(LANE_COUNT / 2);
+  targetX = LANE_POSITIONS[currentLane];
+  distanceTraveled = 0;
+  gameTime = 0;
+  shakeIntensity = 0;
+  crashActive = false;
+  crashFlashAlpha = 0;
+  lastNearMissZ = 0;
+  lastSpeedMilestone = 0;
+  lastDistanceMilestone = 0;
+
+  car.position.set(LANE_POSITIONS[currentLane], 0, 0);
+  car.rotation.z = 0;
+  lastObstacleZ = car.position.z - 30;
+  lastSceneryZ = car.position.z;
+
+  roadSegments.forEach((seg, i) => {
+    seg.position.z = -i * ROAD_SEGMENT_LENGTH;
+  });
+
+  // Hide all overlays
   document.getElementById("start-screen")!.style.display = "none";
-  document.getElementById("gameover-screen")!.style.display = "none";
+  lobbyScreen.style.display = "none";
+
+  gameState = "playing";
 
   // Notify spectator hub
   if (currentUser) {
@@ -1040,6 +1216,9 @@ function startGame(): void {
     });
     startSpectatorUpdates();
   }
+
+  // AI Commentary: race start
+  requestCommentary("race_start", { name: currentUser?.name || "Racer" });
 }
 
 async function gameOver(): Promise<void> {
@@ -1047,26 +1226,11 @@ async function gameOver(): Promise<void> {
   triggerCrashEffect();
 
   const finalScore = Math.floor(score);
-  document.getElementById("gameover-screen")!.style.display = "flex";
-  document.getElementById("final-score")!.textContent = String(finalScore);
-  document.getElementById("final-rank")!.textContent = "Submitting...";
-  document.getElementById("final-congrats")!.textContent = "";
 
   // Submit score
   let rank: number | null = null;
   if (currentUser) {
     rank = await submitScore(currentUser.id, finalScore);
-    if (rank !== null) {
-      document.getElementById("final-rank")!.textContent = `Rank #${rank}`;
-      if (rank <= 10) {
-        document.getElementById("final-congrats")!.textContent =
-          rank === 1 ? "NEW HIGH SCORE!" : "TOP 10 FINISH!";
-      }
-    } else {
-      document.getElementById("final-rank")!.textContent = "";
-    }
-  } else {
-    document.getElementById("final-rank")!.textContent = "";
   }
 
   // Notify spectator hub
@@ -1085,48 +1249,25 @@ async function gameOver(): Promise<void> {
     entries: leaderboardData,
   });
 
-  // Render leaderboard on game over screen
-  renderGameOverLeaderboard(rank);
-}
-
-function resetGame(): void {
-  obstacles.forEach((obs) => scene.remove(obs));
-  obstacles = [];
-  sceneryItems.forEach((item) => scene.remove(item));
-  sceneryItems = [];
-
-  score = 0;
-  speed = INITIAL_SPEED;
-  currentLane = Math.floor(LANE_COUNT / 2);
-  targetX = LANE_POSITIONS[currentLane];
-  distanceTraveled = 0;
-  gameTime = 0;
-  shakeIntensity = 0;
-  crashActive = false;
-  crashFlashAlpha = 0;
-  lastNearMissZ = 0;
-
-  car.position.set(LANE_POSITIONS[currentLane], 0, 0);
-  car.rotation.z = 0;
-  lastObstacleZ = car.position.z - 30;
-  lastSceneryZ = car.position.z;
-
-  roadSegments.forEach((seg, i) => {
-    seg.position.z = -i * ROAD_SEGMENT_LENGTH;
-  });
-
-  document.getElementById("gameover-screen")!.style.display = "none";
-  gameState = "playing";
-
-  // Notify spectator hub of new race
-  if (currentUser) {
-    sendSpectatorEvent({
-      type: "race_start",
-      userId: currentUser.id,
-      name: currentUser.name,
+  // AI Commentary: crash / top 10
+  if (rank !== null && rank <= 10) {
+    requestCommentary("top10", {
+      name: currentUser?.name || "Racer",
+      score: finalScore,
+      rank,
     });
-    startSpectatorUpdates();
+  } else {
+    requestCommentary("crash", {
+      name: currentUser?.name || "Racer",
+      score: finalScore,
+      rank: rank || 0,
+    });
   }
+
+  // Show lobby with crash results after a brief delay for the crash effect
+  setTimeout(() => {
+    showLobby(finalScore, rank);
+  }, 1200);
 }
 
 // ─── HUD UPDATE ──────────────────────────────────────────────
@@ -1214,6 +1355,21 @@ function animate(): void {
     // Collision
     if (checkCollision()) {
       gameOver();
+    }
+
+    // AI Commentary: speed milestones (every 50 km/h)
+    const currentKmh = Math.floor(speed * 3.6);
+    const speedMilestone = Math.floor(currentKmh / 50) * 50;
+    if (speedMilestone > lastSpeedMilestone && speedMilestone >= 100) {
+      lastSpeedMilestone = speedMilestone;
+      requestCommentary("speed_milestone", { speed: speedMilestone });
+    }
+
+    // AI Commentary: distance milestones (every 500)
+    const distMilestone = Math.floor(distanceTraveled / 500) * 500;
+    if (distMilestone > lastDistanceMilestone && distMilestone >= 500) {
+      lastDistanceMilestone = distMilestone;
+      requestCommentary("distance_milestone", { distance: distMilestone });
     }
 
     // Speed lines
