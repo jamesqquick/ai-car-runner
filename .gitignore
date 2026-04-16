@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.wrangler/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+worker-configuration.d.ts
