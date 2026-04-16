@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Car Runner - Live Spectator Board</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #050510;
+      color: #fff;
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto 1fr auto;
+      height: 100vh;
+      padding: 30px 40px;
+      gap: 30px;
+    }
+
+    /* Header */
+    .header {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      font-family: 'Orbitron', monospace;
+      font-size: 36px;
+      font-weight: 900;
+      color: #f97316;
+      letter-spacing: 4px;
+      text-shadow: 0 0 30px rgba(249, 115, 22, 0.4);
+    }
+    .header .powered-by {
+      font-family: 'Orbitron', monospace;
+      font-size: 12px;
+      color: #555;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+    .connection-status {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    .connection-status.connected { background: #22c55e; }
+
+    /* Leaderboard panel */
+    .leaderboard-panel {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(249, 115, 22, 0.1);
+      border-radius: 16px;
+      padding: 28px 32px;
+      overflow: hidden;
+    }
+    .leaderboard-panel h2 {
+      font-family: 'Orbitron', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: #f97316;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .lb-row {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      transition: all 0.5s ease;
+    }
+    .lb-row:nth-child(odd) { background: rgba(255, 255, 255, 0.02); }
+    .lb-row.highlight {
+      background: rgba(249, 115, 22, 0.15);
+      border: 1px solid rgba(249, 115, 22, 0.3);
+    }
+    .lb-rank {
+      font-family: 'Orbitron', monospace;
+      font-size: 20px;
+      font-weight: 900;
+      color: #f97316;
+      width: 50px;
+      text-align: center;
+    }
+    .lb-rank.gold { color: #fbbf24; text-shadow: 0 0 15px rgba(251, 191, 36, 0.5); }
+    .lb-rank.silver { color: #d1d5db; }
+    .lb-rank.bronze { color: #d97706; }
+    .lb-name {
+      flex: 1;
+      font-size: 18px;
+      font-weight: 600;
+      color: #e5e7eb;
+      padding-left: 12px;
+    }
+    .lb-score {
+      font-family: 'Orbitron', monospace;
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .lb-empty {
+      color: #333;
+      font-size: 16px;
+      text-align: center;
+      padding: 40px;
+    }
+
+    /* Racing panel */
+    .racing-panel {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(249, 115, 22, 0.1);
+      border-radius: 16px;
+      padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .racing-panel h2 {
+      font-family: 'Orbitron', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: #f97316;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+    #racers-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    /* Racer card */
+    .racer-card {
+      background: rgba(249, 115, 22, 0.05);
+      border: 1px solid rgba(249, 115, 22, 0.15);
+      border-radius: 12px;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      animation: cardSlideIn 0.4s ease-out;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .racer-card.removing {
+      opacity: 0;
+      transform: translateX(30px) scale(0.95);
+    }
+    @keyframes cardSlideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-20px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+    }
+    .racer-card .racer-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+      flex-shrink: 0;
+      animation: indicatorPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes indicatorPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .racer-card .racer-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .racer-card .racer-name {
+      font-family: 'Orbitron', monospace;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .racer-card .racer-speed {
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      color: #666;
+      margin-top: 2px;
+      letter-spacing: 1px;
+    }
+    .racer-card .racer-distance {
+      font-family: 'Orbitron', monospace;
+      font-size: 28px;
+      font-weight: 900;
+      color: #f97316;
+      text-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+      flex-shrink: 0;
+      letter-spacing: 2px;
+    }
+
+    /* Finished card (briefly shows score) */
+    .racer-card.finished {
+      border-color: rgba(34, 197, 94, 0.3);
+      background: rgba(34, 197, 94, 0.05);
+    }
+    .racer-card.finished .racer-indicator {
+      background: #ef4444;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+      animation: none;
+    }
+    .racer-card.finished .racer-distance {
+      color: #22c55e;
+    }
+
+    .waiting-message {
+      font-family: 'Orbitron', monospace;
+      font-size: 18px;
+      color: #333;
+      letter-spacing: 2px;
+      text-align: center;
+      padding: 40px 0;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Racer count badge */
+    .racer-count {
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      color: #666;
+      letter-spacing: 2px;
+      margin-left: 12px;
+    }
+
+    /* Score flash animation */
+    .score-flash {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'Orbitron', monospace;
+      font-size: 48px;
+      font-weight: 900;
+      color: #f97316;
+      text-shadow: 0 0 60px rgba(249, 115, 22, 0.8);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 100;
+      transition: all 0.8s ease;
+    }
+    .score-flash.active {
+      opacity: 1;
+      transform: translate(-50%, -60%) scale(1.2);
+    }
+
+    /* Footer */
+    .footer {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer .tech-stack {
+      display: flex;
+      gap: 24px;
+    }
+    .tech-badge {
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      color: #444;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 6px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+    .tech-badge span { color: #f97316; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>CAR RUNNER</h1>
+      <div class="powered-by">
+        <span class="connection-status" id="status-dot"></span>
+        Powered by Cloudflare
+      </div>
+    </div>
+
+    <div class="leaderboard-panel">
+      <h2>Leaderboard</h2>
+      <div id="leaderboard">
+        <div class="lb-empty">No scores yet — be the first to race!</div>
+      </div>
+    </div>
+
+    <div class="racing-panel">
+      <div style="display:flex;align-items:baseline;">
+        <h2>Now Racing</h2>
+        <span class="racer-count" id="racer-count"></span>
+      </div>
+      <div id="racers-container">
+        <div class="waiting-message">Waiting for next racer...</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="tech-stack">
+        <div class="tech-badge"><span>Workers</span> Compute</div>
+        <div class="tech-badge"><span>D1</span> Database</div>
+        <div class="tech-badge"><span>Durable Objects</span> Real-time</div>
+        <div class="tech-badge"><span>WebSockets</span> Live Updates</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="score-flash" id="score-flash"></div>
+
+  <script>
+    const leaderboardEl = document.getElementById("leaderboard");
+    const racersContainer = document.getElementById("racers-container");
+    const statusDot = document.getElementById("status-dot");
+    const scoreFlash = document.getElementById("score-flash");
+    const racerCountEl = document.getElementById("racer-count");
+
+    let ws = null;
+    let leaderboardData = [];
+    // Map of userId -> { name, distance, speed }
+    const activeRacers = new Map();
+
+    function connect() {
+      const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+      ws = new WebSocket(`${protocol}//${location.host}/ws/spectator?type=spectator`);
+
+      ws.onopen = () => {
+        statusDot.classList.add("connected");
+        fetchLeaderboard();
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        handleMessage(data);
+      };
+
+      ws.onclose = () => {
+        statusDot.classList.remove("connected");
+        setTimeout(connect, 2000);
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+    }
+
+    function handleMessage(data) {
+      switch (data.type) {
+        case "init":
+          // Populate all active racers
+          activeRacers.clear();
+          if (data.racers && data.racers.length > 0) {
+            for (const racer of data.racers) {
+              activeRacers.set(racer.userId, {
+                name: racer.name,
+                distance: racer.distance,
+                speed: racer.speed,
+              });
+            }
+          }
+          renderRacers();
+          break;
+
+        case "race_start":
+          activeRacers.set(data.racer.userId, {
+            name: data.racer.name,
+            distance: 0,
+            speed: 0,
+          });
+          renderRacers();
+          break;
+
+        case "race_update": {
+          const racer = activeRacers.get(data.userId);
+          if (racer) {
+            racer.distance = data.distance;
+            racer.speed = data.speed;
+            updateRacerCard(data.userId, racer);
+          }
+          break;
+        }
+
+        case "race_end":
+          showRaceEnd(data.userId, data.name, data.score, data.rank);
+          fetchLeaderboard();
+          break;
+
+        case "race_end_disconnect":
+          activeRacers.delete(data.userId);
+          removeRacerCard(data.userId);
+          break;
+
+        case "leaderboard_update":
+          leaderboardData = data.entries;
+          renderLeaderboard();
+          break;
+      }
+    }
+
+    function renderRacers() {
+      if (activeRacers.size === 0) {
+        racersContainer.innerHTML = `<div class="waiting-message">Waiting for next racer...</div>`;
+        racerCountEl.textContent = "";
+        return;
+      }
+
+      racerCountEl.textContent = `${activeRacers.size} active`;
+
+      // Build cards for all active racers
+      const cards = [];
+      for (const [userId, racer] of activeRacers) {
+        cards.push(buildRacerCardHTML(userId, racer));
+      }
+      racersContainer.innerHTML = cards.join("");
+    }
+
+    function buildRacerCardHTML(userId, racer) {
+      return `
+        <div class="racer-card" id="racer-${userId}">
+          <div class="racer-indicator"></div>
+          <div class="racer-info">
+            <div class="racer-name">${escapeHtml(racer.name)}</div>
+            <div class="racer-speed" data-speed="${userId}">${Math.floor((racer.speed || 0) * 3.6)} km/h</div>
+          </div>
+          <div class="racer-distance" data-dist="${userId}">${Math.floor(racer.distance || 0).toLocaleString()}</div>
+        </div>
+      `;
+    }
+
+    function updateRacerCard(userId, racer) {
+      const distEl = racersContainer.querySelector(`[data-dist="${userId}"]`);
+      const speedEl = racersContainer.querySelector(`[data-speed="${userId}"]`);
+      if (distEl) distEl.textContent = Math.floor(racer.distance).toLocaleString();
+      if (speedEl) speedEl.textContent = `${Math.floor(racer.speed * 3.6)} km/h`;
+    }
+
+    function removeRacerCard(userId, delay = 0) {
+      const card = document.getElementById(`racer-${userId}`);
+      if (card) {
+        setTimeout(() => {
+          card.classList.add("removing");
+          setTimeout(() => {
+            activeRacers.delete(userId);
+            renderRacers();
+          }, 400);
+        }, delay);
+      } else {
+        activeRacers.delete(userId);
+        renderRacers();
+      }
+    }
+
+    function showRaceEnd(userId, name, score, rank) {
+      // Update the card to show finished state briefly
+      const card = document.getElementById(`racer-${userId}`);
+      if (card) {
+        card.classList.add("finished");
+        const distEl = card.querySelector(`[data-dist="${userId}"]`);
+        if (distEl) distEl.textContent = Math.floor(score).toLocaleString();
+        const speedEl = card.querySelector(`[data-speed="${userId}"]`);
+        if (speedEl) speedEl.textContent = rank <= 10 ? `#${rank} finish` : "finished";
+        const indicator = card.querySelector(".racer-indicator");
+        if (indicator) indicator.style.animation = "none";
+      }
+
+      // Flash for top 10
+      if (rank <= 10) {
+        scoreFlash.textContent = rank === 1
+          ? `${escapeHtml(name)} — NEW HIGH SCORE!`
+          : `${escapeHtml(name)} — #${rank} TOP 10!`;
+        scoreFlash.classList.add("active");
+        setTimeout(() => scoreFlash.classList.remove("active"), 2500);
+      }
+
+      // Remove card after a delay
+      removeRacerCard(userId, 3000);
+    }
+
+    async function fetchLeaderboard() {
+      try {
+        const res = await fetch("/api/leaderboard?limit=10");
+        if (res.ok) {
+          const data = await res.json();
+          leaderboardData = data.entries;
+          renderLeaderboard();
+        }
+      } catch {}
+    }
+
+    function renderLeaderboard() {
+      if (leaderboardData.length === 0) {
+        leaderboardEl.innerHTML = `<div class="lb-empty">No scores yet — be the first to race!</div>`;
+        return;
+      }
+
+      leaderboardEl.innerHTML = leaderboardData.map((entry, i) => {
+        const rankClass = i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
+        return `
+          <div class="lb-row">
+            <div class="lb-rank ${rankClass}">#${i + 1}</div>
+            <div class="lb-name">${escapeHtml(entry.name)}</div>
+            <div class="lb-score">${entry.score.toLocaleString()}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    setInterval(fetchLeaderboard, 10000);
+    connect();
+  </script>
+</body>
+</html>

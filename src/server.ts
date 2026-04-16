@@ -1,3 +1,6 @@
+// Re-export the Durable Object so wrangler can find it
+export { SpectatorHub } from "./spectator-hub";
+
 function jsonResponse(data: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -19,6 +22,16 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
+
+    // ─── WebSocket: /ws/spectator ────────────────────────────
+    if (path === "/ws/spectator") {
+      const id = env.SPECTATOR_HUB.idFromName("global");
+      const hub = env.SPECTATOR_HUB.get(id);
+      // Forward with ?type= param
+      const wsUrl = new URL(request.url);
+      wsUrl.searchParams.set("type", wsUrl.searchParams.get("type") || "spectator");
+      return hub.fetch(new Request(wsUrl.toString(), request));
+    }
 
     // ─── POST /api/login ─────────────────────────────────────
     if (path === "/api/login" && request.method === "POST") {
@@ -76,7 +89,6 @@ export default {
         return errorResponse("Valid score is required");
       }
 
-      // Verify user exists
       const user = await env.DB.prepare("SELECT id FROM users WHERE id = ?")
         .bind(user_id)
         .first();
@@ -92,7 +104,6 @@ export default {
         .bind(user_id, roundedScore)
         .run();
 
-      // Get rank of this score
       const rankResult = await env.DB.prepare(
         "SELECT COUNT(*) as rank FROM scores WHERE score > ?"
       )
@@ -127,8 +138,8 @@ export default {
       });
     }
 
-    // 404 for unknown API routes
-    if (path.startsWith("/api/")) {
+    // 404 for unknown API/WS routes
+    if (path.startsWith("/api/") || path.startsWith("/ws/")) {
       return errorResponse("Not found", 404);
     }
 

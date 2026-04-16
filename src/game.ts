@@ -152,6 +152,66 @@ fetchLeaderboard();
 // Poll leaderboard every 10s
 setInterval(fetchLeaderboard, 10000);
 
+// ─── SPECTATOR HUB WEBSOCKET ────────────────────────────────
+let spectatorWs: WebSocket | null = null;
+let spectatorUpdateInterval: ReturnType<typeof setInterval> | null = null;
+
+function connectSpectatorHub(): void {
+  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+  spectatorWs = new WebSocket(`${protocol}//${location.host}/ws/spectator?type=game`);
+
+  spectatorWs.onopen = () => {
+    // If we reconnected mid-race, re-register with the spectator hub
+    if (gameState === "playing" && currentUser) {
+      sendSpectatorEvent({
+        type: "race_start",
+        userId: currentUser.id,
+        name: currentUser.name,
+      });
+      startSpectatorUpdates();
+    }
+  };
+  spectatorWs.onclose = () => {
+    spectatorWs = null;
+    setTimeout(connectSpectatorHub, 3000);
+  };
+  spectatorWs.onerror = () => {
+    spectatorWs?.close();
+  };
+}
+
+function sendSpectatorEvent(data: Record<string, unknown>): void {
+  if (spectatorWs?.readyState === WebSocket.OPEN) {
+    spectatorWs.send(JSON.stringify(data));
+  }
+}
+
+function startSpectatorUpdates(): void {
+  // Send live distance updates every 500ms
+  if (spectatorUpdateInterval) clearInterval(spectatorUpdateInterval);
+  spectatorUpdateInterval = setInterval(() => {
+    if (gameState === "playing" && currentUser) {
+      sendSpectatorEvent({
+        type: "race_update",
+        userId: currentUser.id,
+        name: currentUser.name,
+        distance: distanceTraveled,
+        speed,
+      });
+    }
+  }, 500);
+}
+
+function stopSpectatorUpdates(): void {
+  if (spectatorUpdateInterval) {
+    clearInterval(spectatorUpdateInterval);
+    spectatorUpdateInterval = null;
+  }
+}
+
+// Connect on page load
+connectSpectatorHub();
+
 // ─── STATE ───────────────────────────────────────────────────
 let gameState: "start" | "playing" | "gameover" = "start";
 let score = 0;
@@ -970,6 +1030,16 @@ function startGame(): void {
   gameState = "playing";
   document.getElementById("start-screen")!.style.display = "none";
   document.getElementById("gameover-screen")!.style.display = "none";
+
+  // Notify spectator hub
+  if (currentUser) {
+    sendSpectatorEvent({
+      type: "race_start",
+      userId: currentUser.id,
+      name: currentUser.name,
+    });
+    startSpectatorUpdates();
+  }
 }
 
 async function gameOver(): Promise<void> {
@@ -998,6 +1068,22 @@ async function gameOver(): Promise<void> {
   } else {
     document.getElementById("final-rank")!.textContent = "";
   }
+
+  // Notify spectator hub
+  stopSpectatorUpdates();
+  sendSpectatorEvent({
+    type: "race_end",
+    userId: currentUser?.id || "",
+    name: currentUser?.name || "",
+    score: finalScore,
+    rank: rank || 0,
+  });
+
+  // Send updated leaderboard to spectators
+  sendSpectatorEvent({
+    type: "leaderboard_update",
+    entries: leaderboardData,
+  });
 
   // Render leaderboard on game over screen
   renderGameOverLeaderboard(rank);
@@ -1031,6 +1117,16 @@ function resetGame(): void {
 
   document.getElementById("gameover-screen")!.style.display = "none";
   gameState = "playing";
+
+  // Notify spectator hub of new race
+  if (currentUser) {
+    sendSpectatorEvent({
+      type: "race_start",
+      userId: currentUser.id,
+      name: currentUser.name,
+    });
+    startSpectatorUpdates();
+  }
 }
 
 // ─── HUD UPDATE ──────────────────────────────────────────────
