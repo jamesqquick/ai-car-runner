@@ -16,11 +16,6 @@ export interface RemixConfig {
 
   // Obstacle theme
   obstacleColors: string[];
-  obstacleNames: {
-    car: string;
-    barrier: string;
-    cone: string;
-  };
 
   // Speed
   initialSpeed: number;
@@ -55,11 +50,6 @@ export const DEFAULT_CONFIG: RemixConfig = {
   speedLineColor: "#aaccff",
 
   obstacleColors: ["#ef4444", "#3b82f6", "#8b5cf6", "#10b981", "#eab308"],
-  obstacleNames: {
-    car: "car",
-    barrier: "barrier",
-    cone: "cone",
-  },
 
   initialSpeed: 18,
   maxSpeed: 55,

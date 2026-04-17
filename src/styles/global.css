@@ -14,7 +14,7 @@
   --color-border-orange: rgba(249, 115, 22, 0.15);
   --color-text: #fff;
   --color-text-muted: #888;
-  --color-text-dim: #555;
+  --color-text-dim: #999;
   --color-text-dark: #444;
   --color-error: #ef4444;
   --color-success: #22c55e;
@@ -27,12 +27,13 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-body);
+  font-size: 16px;
 }
 
 /* ─── Shared Button Styles ─── */
 .btn-primary {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   padding: 16px 0;
   width: 320px;
@@ -52,7 +53,7 @@ body {
 
 .btn-secondary {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   padding: 16px 0;
   width: 320px;
@@ -87,7 +88,7 @@ body {
 }
 .leaderboard-panel h3 {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 3px;
   color: var(--color-orange);
@@ -97,7 +98,7 @@ body {
 .lb-entry {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
+  font-size: 15px;
   padding: 3px 0;
   color: var(--color-text-muted);
 }
@@ -127,7 +128,7 @@ a.page-header-logo,
 a.page-header-logo:visited,
 a.page-header-logo:active {
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 900;
   color: var(--color-orange);
   letter-spacing: 2px;
@@ -144,7 +145,7 @@ a.page-header-logo:active {
   gap: 16px;
 }
 .page-header-link {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--color-text-dim);
   text-decoration: none;
   transition: color 0.2s;
@@ -242,7 +243,7 @@ a.page-header-logo:active {
 }
 .mobile-nav-link {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--color-text-dim);
   text-decoration: none;
@@ -277,7 +278,7 @@ body.nav-open {
 @media (max-width: 600px) {
   .btn-primary,
   .btn-secondary {
-    font-size: 14px;
+    font-size: 16px;
     padding: 14px 0;
     width: 260px;
   }
@@ -285,7 +286,7 @@ body.nav-open {
     max-width: 100%;
     padding: 16px 20px;
   }
-  .page-header-logo { font-size: 11px; letter-spacing: 1px; }
+  .page-header-logo { font-size: 13px; letter-spacing: 1px; }
   .desktop-nav { display: none; }
   .hamburger { display: flex; }
   .mobile-nav-overlay { display: flex; }
@@ -295,5 +296,5 @@ body.nav-open {
     padding: 12px 16px;
     margin-bottom: 16px;
   }
-  .lb-entry { font-size: 12px; }
+  .lb-entry { font-size: 14px; }
 }

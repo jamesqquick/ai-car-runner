@@ -20,7 +20,7 @@ const containerStyle: React.CSSProperties = {
 
 const badgeStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 8,
+  fontSize: 10,
   textTransform: "uppercase",
   letterSpacing: 3,
   color: "#f97316",
@@ -29,7 +29,7 @@ const badgeStyle: React.CSSProperties = {
 
 const textStyle: React.CSSProperties = {
   fontFamily: "'Inter', system-ui, sans-serif",
-  fontSize: 16,
+  fontSize: 18,
   color: "#fff",
   textAlign: "center",
   maxWidth: 500,

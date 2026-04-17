@@ -35,7 +35,7 @@ const titleStyle: React.CSSProperties = {
 
 const playerNameStyle: React.CSSProperties = {
   fontFamily: "'Inter', system-ui, sans-serif",
-  fontSize: 14,
+  fontSize: 16,
   color: "#888",
   marginBottom: 16,
 };
@@ -50,7 +50,7 @@ const crashResultStyle: React.CSSProperties = {
 
 const crashScoreLabelStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 10,
+  fontSize: 12,
   textTransform: "uppercase",
   letterSpacing: 3,
   color: "#888",
@@ -66,14 +66,14 @@ const crashScoreValueStyle: React.CSSProperties = {
 
 const crashRankStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 16,
+  fontSize: 18,
   color: "#fff",
   letterSpacing: 2,
 };
 
 const crashCongratsStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 14,
+  fontSize: 16,
   color: "#22c55e",
   letterSpacing: 2,
   marginTop: 4,
@@ -84,7 +84,7 @@ const optionsStyle: React.CSSProperties = {
   alignItems: "center",
   gap: 8,
   marginBottom: 12,
-  fontSize: 13,
+  fontSize: 15,
   color: "#888",
 };
 
@@ -96,7 +96,7 @@ const checkboxStyle: React.CSSProperties = {
 
 const btnPrimaryStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 18,
+  fontSize: 20,
   fontWeight: 700,
   padding: "16px 0",
   width: 320,
@@ -115,7 +115,7 @@ const btnPrimaryStyle: React.CSSProperties = {
 
 const btnSecondaryStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 18,
+  fontSize: 20,
   fontWeight: 700,
   padding: "16px 0",
   width: 320,

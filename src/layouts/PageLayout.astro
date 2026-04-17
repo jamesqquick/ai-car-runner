@@ -28,6 +28,7 @@ const navLinks = links.length > 0 ? links : defaultLinks;
       {navLinks.map(link => (
         <a href={link.href} class="page-header-link">{link.label}</a>
       ))}
+      <button class="page-header-link logout-btn" aria-label="Log out">Logout</button>
     </nav>
 
     {/* Mobile hamburger */}
@@ -48,6 +49,7 @@ const navLinks = links.length > 0 ? links : defaultLinks;
       {navLinks.map(link => (
         <a href={link.href} class="mobile-nav-link">{link.label}</a>
       ))}
+      <button class="mobile-nav-link logout-btn" aria-label="Log out">Logout</button>
     </nav>
   </div>
 
@@ -83,4 +85,41 @@ const navLinks = links.length > 0 ? links : defaultLinks;
   });
 
   closeBtn?.addEventListener('click', closeNav);
+
+  document.querySelectorAll('.logout-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      localStorage.removeItem('car_runner_user');
+      localStorage.removeItem('car_runner_commentary');
+      window.location.href = '/login';
+    });
+  });
 </script>
+
+<style>
+  button.logout-btn.page-header-link {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    font-size: 14px;
+    color: var(--color-text-dim);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  button.logout-btn.mobile-nav-link {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-text-dim);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 20px 40px;
+    transition: color 0.2s, transform 0.2s;
+    transform: translateY(20px);
+    opacity: 0;
+  }
+</style>

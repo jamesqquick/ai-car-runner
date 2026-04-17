@@ -57,7 +57,7 @@ const S: Record<string, React.CSSProperties> = {
   },
   headerTitle: {
     fontFamily: "'Orbitron', monospace",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 900,
     color: "#f97316",
     letterSpacing: 3,
@@ -67,7 +67,7 @@ const S: Record<string, React.CSSProperties> = {
     gap: 16,
   },
   headerLink: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#555",
     textDecoration: "none",
     transition: "color 0.2s",
@@ -90,7 +90,7 @@ const S: Record<string, React.CSSProperties> = {
     marginBottom: 6,
   },
   pageSubtitle: {
-    fontSize: 13,
+    fontSize: 15,
     color: "#555",
     textAlign: "center" as const,
     marginBottom: 32,
@@ -100,7 +100,7 @@ const S: Record<string, React.CSSProperties> = {
   loading: {
     textAlign: "center" as const,
     color: "#555",
-    fontSize: 14,
+    fontSize: 16,
     padding: "40px 0",
   },
   loadingSpinner: {
@@ -118,14 +118,14 @@ const S: Record<string, React.CSSProperties> = {
   empty: {
     textAlign: "center" as const,
     color: "#555",
-    fontSize: 14,
+    fontSize: 16,
     padding: "60px 0",
   },
   emptyCta: {
     display: "inline-block",
     marginTop: 16,
     fontFamily: "'Orbitron', monospace",
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 700,
     padding: "10px 24px",
     border: "1px solid rgba(249,115,22,0.3)",
@@ -157,14 +157,14 @@ const S: Record<string, React.CSSProperties> = {
   },
   cardTitle: {
     fontFamily: "'Orbitron', monospace",
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 700,
     color: "#f97316",
     letterSpacing: 1,
     marginBottom: 6,
   },
   cardPrompt: {
-    fontSize: 13,
+    fontSize: 15,
     color: "#888",
     lineHeight: 1.5,
     marginBottom: 12,
@@ -185,7 +185,7 @@ const S: Record<string, React.CSSProperties> = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    fontSize: 11,
+    fontSize: 13,
     color: "#444",
     marginBottom: 14,
   },
@@ -194,7 +194,7 @@ const S: Record<string, React.CSSProperties> = {
   },
   cardMechanic: {
     fontFamily: "'Orbitron', monospace",
-    fontSize: 9,
+    fontSize: 11,
     letterSpacing: 1,
     color: "#555",
     background: "rgba(255,255,255,0.04)",
@@ -210,7 +210,7 @@ const S: Record<string, React.CSSProperties> = {
   cardBtnPlay: {
     flex: 1,
     fontFamily: "'Orbitron', monospace",
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: 700,
     padding: "10px 0",
     border: "none",

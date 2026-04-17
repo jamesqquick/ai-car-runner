@@ -25,7 +25,7 @@ export const POST: APIRoute = async ({ request }) => {
   const remixSystemPrompt = `You generate JSON configs for a car racing game remix. The user describes a theme and you return ONLY valid JSON matching this exact schema — no markdown, no explanation, just the JSON object:
 
 {
-  "title": "short name, 2-3 words",
+  "title": "a fun, quirky, unique 2-4 word name — be silly and creative like 'Turbo Banana Blitz' or 'Cosmic Pickle Express' or 'Slippery Noodle Rally'. Avoid generic names like 'Neon Rush' or 'Dark Dash'. Keep it safe for work.",
   "carColor": "#hex",
   "roadColor": "#hex",
   "skyColor": "#hex",
@@ -35,7 +35,6 @@ export const POST: APIRoute = async ({ request }) => {
   "lightingColor": "#hex",
   "speedLineColor": "#hex",
   "obstacleColors": ["#hex", "#hex", "#hex"],
-  "obstacleNames": { "car": "name", "barrier": "name", "cone": "name" },
   "initialSpeed": 15-25,
   "maxSpeed": 40-70,
   "speedIncrement": 0.5-1.5,
@@ -53,7 +52,6 @@ Rules:
 - All colors must be valid hex strings starting with #
 - Choose colors that match the user's theme
 - specialMechanic should be "none" UNLESS the user explicitly asks for lives, a countdown/timer, or moving obstacles
-- Be creative with obstacle names to match the theme (e.g. "asteroid" for space, "fish" for underwater)
 - Return ONLY the JSON object, nothing else`;
 
   try {

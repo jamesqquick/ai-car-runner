@@ -33,7 +33,7 @@ const scoreStyle: React.CSSProperties = {
 
 const speedStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 14,
+  fontSize: 16,
   color: "rgba(255, 255, 255, 0.5)",
   letterSpacing: 2,
   marginTop: 4,
@@ -53,7 +53,7 @@ const topRightStyle: React.CSSProperties = {
 
 const lbTitleStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 9,
+  fontSize: 11,
   textTransform: "uppercase",
   letterSpacing: 3,
   color: "#f97316",
@@ -64,7 +64,7 @@ const lbTitleStyle: React.CSSProperties = {
 const lbEntryStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  fontSize: 12,
+  fontSize: 14,
   padding: "2px 0",
   color: "#888",
 };
@@ -76,7 +76,7 @@ const rankStyle: React.CSSProperties = {
 };
 
 const lbEmptyStyle: React.CSSProperties = {
-  fontSize: 12,
+  fontSize: 14,
   color: "#444",
   textAlign: "center",
 };

@@ -247,6 +247,8 @@ function createEngine(
   let shakeIntensity = 0;
   const shakeDecay = 0.92;
   let livesRemaining = config.specialMechanic === "lives" ? (config.lives || 3) : 0;
+  let invincibleTimer = 0; // seconds of invincibility remaining after losing a life
+  const INVINCIBLE_DURATION = 1.5;
   let countdownRemaining = config.specialMechanic === "countdown" ? (config.countdownSeconds || 60) : 0;
   let crashFlashAlpha = 0;
   let lastNearMissZ = 0;
@@ -402,6 +404,7 @@ function createEngine(
     crashFlashAlpha = 0;
     lastNearMissZ = 0;
     livesRemaining = config.specialMechanic === "lives" ? (config.lives || 3) : 0;
+    invincibleTimer = 0;
     countdownRemaining = config.specialMechanic === "countdown" ? (config.countdownSeconds || 60) : 0;
 
     car.position.set(LANE_POSITIONS[currentLane], 0, 0);
@@ -580,12 +583,23 @@ function createEngine(
         }
       }
 
-      // Collision
+      // Tick down invincibility timer
+      if (invincibleTimer > 0) {
+        invincibleTimer -= dt;
+        // Flash the car to indicate invincibility
+        car.visible = Math.floor(invincibleTimer * 10) % 2 === 0;
+      } else {
+        car.visible = true;
+      }
+
+      // Collision (skip while invincible)
       if (
+        invincibleTimer <= 0 &&
         checkCollision(car.position, CAR_WIDTH, CAR_LENGTH, HITBOX_SHRINK, obstacles)
       ) {
         if (config.specialMechanic === "lives" && livesRemaining > 1) {
           livesRemaining--;
+          invincibleTimer = INVINCIBLE_DURATION;
           shakeIntensity = 0.4;
         } else {
           gameOver();

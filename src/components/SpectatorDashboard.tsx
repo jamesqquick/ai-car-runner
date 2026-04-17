@@ -65,7 +65,7 @@ const titleStyle: React.CSSProperties = {
 
 const poweredByStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 12,
+  fontSize: 14,
   color: "#555",
   letterSpacing: 3,
   textTransform: "uppercase",
@@ -90,7 +90,7 @@ const panelStyle: React.CSSProperties = {
 
 const panelHeadingStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 14,
+  fontSize: 16,
   fontWeight: 700,
   color: ORANGE,
   letterSpacing: 4,
@@ -134,7 +134,7 @@ const racerIndicatorStyle: React.CSSProperties = {
 
 const racerNameStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 16,
+  fontSize: 18,
   fontWeight: 700,
   color: "#fff",
   whiteSpace: "nowrap",
@@ -144,7 +144,7 @@ const racerNameStyle: React.CSSProperties = {
 
 const racerSpeedStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 11,
+  fontSize: 13,
   color: "#666",
   marginTop: 2,
   letterSpacing: 1,
@@ -162,7 +162,7 @@ const racerDistanceStyle: React.CSSProperties = {
 
 const waitingStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 18,
+  fontSize: 20,
   color: "#333",
   letterSpacing: 2,
   textAlign: "center",
@@ -171,7 +171,7 @@ const waitingStyle: React.CSSProperties = {
 
 const racerCountStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 11,
+  fontSize: 13,
   color: "#666",
   letterSpacing: 2,
   marginLeft: 12,
@@ -187,7 +187,7 @@ const lbRowStyle: React.CSSProperties = {
 
 const lbRankStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 20,
+  fontSize: 22,
   fontWeight: 900,
   color: ORANGE,
   width: 50,
@@ -196,7 +196,7 @@ const lbRankStyle: React.CSSProperties = {
 
 const lbNameStyle: React.CSSProperties = {
   flex: 1,
-  fontSize: 18,
+  fontSize: 20,
   fontWeight: 600,
   color: "#e5e7eb",
   paddingLeft: 12,
@@ -204,14 +204,14 @@ const lbNameStyle: React.CSSProperties = {
 
 const lbScoreStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 22,
+  fontSize: 24,
   fontWeight: 700,
   color: "#fff",
 };
 
 const lbEmptyStyle: React.CSSProperties = {
   color: "#333",
-  fontSize: 16,
+  fontSize: 18,
   textAlign: "center",
   padding: 40,
 };
@@ -230,7 +230,7 @@ const techStackStyle: React.CSSProperties = {
 
 const techBadgeStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 10,
+  fontSize: 12,
   color: "#444",
   letterSpacing: 2,
   textTransform: "uppercase",
@@ -556,15 +556,15 @@ export function SpectatorDashboard() {
               <div
                 style={{
                   ...lbRankStyle,
-                  fontSize: 16,
+                  fontSize: 18,
                   width: 40,
                   color: "#22c55e",
                 }}
               >
                 #{finish.rank}
               </div>
-              <div style={{ ...lbNameStyle, fontSize: 16 }}>{finish.name}</div>
-              <div style={{ ...lbScoreStyle, fontSize: 18 }}>
+              <div style={{ ...lbNameStyle, fontSize: 18 }}>{finish.name}</div>
+              <div style={{ ...lbScoreStyle, fontSize: 20 }}>
                 {finish.score.toLocaleString()}
               </div>
             </div>

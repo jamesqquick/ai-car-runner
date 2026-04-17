@@ -20,7 +20,7 @@ const panelStyle: React.CSSProperties = {
 
 const headingStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 10,
+  fontSize: 12,
   textTransform: "uppercase",
   letterSpacing: 3,
   color: "#f97316",
@@ -31,7 +31,7 @@ const headingStyle: React.CSSProperties = {
 const entryStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  fontSize: 13,
+  fontSize: 15,
   padding: "3px 0",
   color: "#888",
 };

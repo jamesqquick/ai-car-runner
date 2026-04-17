@@ -25,7 +25,7 @@ const titleStyle: React.CSSProperties = {
 
 const subtitleStyle: React.CSSProperties = {
   fontFamily: "'Inter', system-ui, sans-serif",
-  fontSize: 12,
+  fontSize: 14,
   color: "#555",
   letterSpacing: 2,
   marginBottom: 48,
@@ -40,7 +40,7 @@ const formStyle: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   fontFamily: "'Inter', system-ui, sans-serif",
-  fontSize: 16,
+  fontSize: 18,
   padding: "14px 20px",
   width: 320,
   background: "rgba(255, 255, 255, 0.05)",
@@ -53,7 +53,7 @@ const inputStyle: React.CSSProperties = {
 
 const buttonStyle: React.CSSProperties = {
   fontFamily: "'Orbitron', monospace",
-  fontSize: 18,
+  fontSize: 20,
   fontWeight: 700,
   padding: "16px 0",
   width: 320,
@@ -76,7 +76,7 @@ const buttonDisabledStyle: React.CSSProperties = {
 
 const errorStyle: React.CSSProperties = {
   color: "#ef4444",
-  fontSize: 13,
+  fontSize: 15,
   marginTop: 4,
   minHeight: 18,
 };
