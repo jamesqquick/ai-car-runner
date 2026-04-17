@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { PlayPage } from '../../../components/PlayPage';
+import { env } from "cloudflare:workers";
+
+const { id } = Astro.params;
+
+const remix = await env.DB.prepare(
+  "SELECT id, prompt, config FROM remixes WHERE id = ?"
+)
+  .bind(id)
+  .first();
+
+if (!remix) {
+  return new Response("Remix not found", { status: 404 });
+}
+
+const config = JSON.parse(remix.config as string);
+config.id = remix.id;
+config.prompt = remix.prompt;
+---
+
+<BaseLayout title={`Playing ${config.title || 'Remix'} — Car Runner`} fullScreen>
+  <PlayPage
+    config={config}
+    lobbyPath={`/remix/${id}`}
+    client:only="react"
+  />
+</BaseLayout>

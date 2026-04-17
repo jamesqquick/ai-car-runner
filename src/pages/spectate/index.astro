@@ -1,0 +1,8 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import { SpectatorDashboard } from '../../components/SpectatorDashboard';
+---
+
+<PageLayout title="Spectate — Cloudflare Car Runner">
+  <SpectatorDashboard client:only="react" />
+</PageLayout>

@@ -1,0 +1,29 @@
+---
+import PageLayout from '../../../layouts/PageLayout.astro';
+import { LobbyScreen } from '../../../components/LobbyScreen';
+import { env } from "cloudflare:workers";
+
+const { id } = Astro.params;
+
+const remix = await env.DB.prepare(
+  "SELECT id, prompt, config FROM remixes WHERE id = ?"
+)
+  .bind(id)
+  .first();
+
+if (!remix) {
+  return new Response("Remix not found", { status: 404 });
+}
+
+const config = JSON.parse(remix.config as string);
+const remixTitle = config.title || "Remix";
+---
+
+<PageLayout title={`${remixTitle} — Car Runner`}>
+  <LobbyScreen
+    remixId={id}
+    remixTitle={remixTitle}
+    playPath={`/remix/${id}/play`}
+    client:only="react"
+  />
+</PageLayout>

@@ -1,0 +1,86 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  title: string;
+  links?: Array<{ href: string; label: string }>;
+  fullScreen?: boolean;
+}
+
+const { title, links = [], fullScreen = false } = Astro.props;
+
+const defaultLinks = [
+  { href: '/', label: 'Play' },
+  { href: '/gallery', label: 'Gallery' },
+  { href: '/remix', label: 'Remix' },
+  { href: '/spectate', label: 'Spectate' },
+];
+
+const navLinks = links.length > 0 ? links : defaultLinks;
+---
+
+<BaseLayout title={title} fullScreen={fullScreen}>
+  <header class="page-header">
+    <a href="/" class="page-header-logo">AI Car Runner</a>
+
+    {/* Desktop nav */}
+    <nav class="page-header-links desktop-nav">
+      {navLinks.map(link => (
+        <a href={link.href} class="page-header-link">{link.label}</a>
+      ))}
+    </nav>
+
+    {/* Mobile hamburger */}
+    <button class="hamburger" aria-label="Open menu" aria-expanded="false">
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </button>
+  </header>
+
+  {/* Mobile full-screen overlay */}
+  <div class="mobile-nav-overlay" aria-hidden="true">
+    <button class="mobile-nav-close" aria-label="Close menu">
+      <span class="close-line"></span>
+      <span class="close-line"></span>
+    </button>
+    <nav class="mobile-nav-content">
+      {navLinks.map(link => (
+        <a href={link.href} class="mobile-nav-link">{link.label}</a>
+      ))}
+    </nav>
+  </div>
+
+  <main>
+    <slot />
+  </main>
+</BaseLayout>
+
+<script>
+  const hamburger = document.querySelector('.hamburger');
+  const overlay = document.querySelector('.mobile-nav-overlay');
+  const closeBtn = document.querySelector('.mobile-nav-close');
+
+  function closeNav() {
+    overlay?.classList.remove('open');
+    hamburger?.classList.remove('open');
+    hamburger?.setAttribute('aria-expanded', 'false');
+    overlay?.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('nav-open');
+  }
+
+  function openNav() {
+    overlay?.classList.add('open');
+    hamburger?.classList.add('open');
+    hamburger?.setAttribute('aria-expanded', 'true');
+    overlay?.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('nav-open');
+  }
+
+  hamburger?.addEventListener('click', () => {
+    const isOpen = overlay?.classList.contains('open');
+    isOpen ? closeNav() : openNav();
+  });
+
+  closeBtn?.addEventListener('click', closeNav);
+</script>
