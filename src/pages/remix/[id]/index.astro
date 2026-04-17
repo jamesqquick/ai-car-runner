@@ -1,18 +1,22 @@
 ---
+import { env } from "cloudflare:workers";
 import PageLayout from '../../../layouts/PageLayout.astro';
 import { LobbyScreen } from '../../../components/LobbyScreen';
 
 const { id } = Astro.params;
 
-// Fetch config from the dynamic worker at /app/[id]
-const appUrl = new URL(`/app/${id}`, Astro.url);
-const res = await fetch(appUrl.toString());
+// Query D1 directly instead of fetching /app/{id} to avoid self-referential fetch
+const remix = await env.DB.prepare(
+  "SELECT id, prompt, config FROM remixes WHERE id = ?"
+).bind(id).first<{ id: string; prompt: string; config: string }>();
 
-if (!res.ok) {
+if (!remix) {
   return new Response("Remix not found", { status: 404 });
 }
 
-const config = await res.json();
+const config = JSON.parse(remix.config);
+config.id = remix.id;
+config.prompt = remix.prompt;
 const remixTitle = config.title || "Remix";
 ---
 
