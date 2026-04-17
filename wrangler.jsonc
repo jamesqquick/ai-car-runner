@@ -30,5 +30,10 @@
   ],
   "ai": {
     "binding": "AI"
-  }
+  },
+  "worker_loaders": [
+    {
+      "binding": "LOADER"
+    }
+  ]
 }

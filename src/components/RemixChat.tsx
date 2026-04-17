@@ -735,9 +735,9 @@ function makeSteps(
     },
     {
       key: "deploy",
-      product: "Workers",
-      label: "Deploying to edge",
-      description: "Your remix is live on Cloudflare's global network in 300+ cities",
+      product: "Worker Loaders",
+      label: "Spinning up dynamic worker",
+      description: "Launching a sandboxed worker instance for your remix via Worker Loaders",
       state: deployState,
     },
   ];
