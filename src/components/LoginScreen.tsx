@@ -136,6 +136,20 @@ export function LoginScreen({ redirectTo = "/" }: LoginScreenProps) {
           type="submit"
           style={loading ? buttonDisabledStyle : buttonStyle}
           disabled={loading}
+          onMouseEnter={(e) => {
+            if (!loading) {
+              e.currentTarget.style.background = "#fb923c";
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = "0 4px 20px rgba(249, 115, 22, 0.6), 0 0 40px rgba(249, 115, 22, 0.15)";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!loading) {
+              e.currentTarget.style.background = "#f97316";
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "none";
+            }
+          }}
         >
           {loading ? "Loading..." : "Continue"}
         </button>

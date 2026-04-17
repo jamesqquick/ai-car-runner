@@ -470,11 +470,11 @@ export function SpectatorDashboard() {
   const racerEntries = Array.from(racers.entries());
 
   return (
-    <div style={containerStyle}>
+    <div style={containerStyle} className="spectate-grid">
       {/* Header */}
-      <div style={headerStyle}>
+      <div style={headerStyle} className="spectate-header">
         <h1 style={titleStyle}>CAR RUNNER</h1>
-        <div style={poweredByStyle}>
+        <div style={poweredByStyle} className="spectate-powered-by">
           <span
             style={{
               ...statusDotBase,
@@ -486,7 +486,7 @@ export function SpectatorDashboard() {
       </div>
 
       {/* Leaderboard */}
-      <div style={panelStyle}>
+      <div style={panelStyle} className="spectate-leaderboard">
         <h2 style={panelHeadingStyle}>Leaderboard</h2>
         {leaderboard.length === 0 ? (
           <div style={lbEmptyStyle}>No scores yet — be the first to race!</div>
@@ -513,7 +513,7 @@ export function SpectatorDashboard() {
       </div>
 
       {/* Active Racers */}
-      <div style={racingPanelStyle}>
+      <div style={racingPanelStyle} className="spectate-racers">
         <div style={{ display: "flex", alignItems: "baseline" }}>
           <h2 style={{ ...panelHeadingStyle, marginBottom: 20 }}>Now Racing</h2>
           {racerEntries.length > 0 && (
@@ -573,8 +573,8 @@ export function SpectatorDashboard() {
       )}
 
       {/* Footer */}
-      <div style={footerStyle}>
-        <div style={techStackStyle}>
+      <div style={footerStyle} className="spectate-footer">
+        <div style={techStackStyle} className="spectate-tech-stack">
           <div style={techBadgeStyle}>
             <span style={{ color: ORANGE }}>Workers</span> Compute
           </div>

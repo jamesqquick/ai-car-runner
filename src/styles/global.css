@@ -49,7 +49,15 @@ body {
   background: var(--color-orange);
   color: #000;
 }
-.btn-primary:hover { background: var(--color-orange-light); transform: scale(1.02); }
+.btn-primary:hover {
+  background: var(--color-orange-light);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px var(--color-orange-glow), 0 0 40px rgba(249, 115, 22, 0.15);
+}
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px var(--color-orange-dim);
+}
 
 .btn-secondary {
   font-family: var(--font-display);
@@ -73,6 +81,12 @@ body {
 .btn-secondary:hover {
   background: rgba(249, 115, 22, 0.2);
   border-color: rgba(249, 115, 22, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.15);
+}
+.btn-secondary:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 /* ─── Leaderboard Shared ─── */
@@ -143,14 +157,34 @@ a.page-header-logo:active {
 .page-header-links {
   display: flex;
   gap: 16px;
+  align-items: center;
 }
-.page-header-link {
+a.page-header-link {
   font-size: 16px;
   color: var(--color-text-dim);
   text-decoration: none;
-  transition: color 0.2s;
+  transition: color 0.25s;
+  position: relative;
+  padding-bottom: 2px;
 }
-.page-header-link:hover { color: var(--color-orange); }
+a.page-header-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--color-orange);
+  box-shadow: 0 0 8px var(--color-orange-glow);
+  border-radius: 1px;
+  transition: width 0.25s ease;
+}
+a.page-header-link:hover {
+  color: var(--color-orange);
+}
+a.page-header-link:hover::after {
+  width: 100%;
+}
 
 /* ─── Hamburger Button ─── */
 .hamburger {
@@ -263,10 +297,12 @@ a.page-header-logo:active {
 .mobile-nav-link:nth-child(3) { transition-delay: 0.15s; }
 .mobile-nav-link:nth-child(4) { transition-delay: 0.2s; }
 .mobile-nav-link:nth-child(5) { transition-delay: 0.25s; }
+.mobile-nav-link:nth-child(6) { transition-delay: 0.3s; }
 
 .mobile-nav-link:hover,
 .mobile-nav-link:active {
   color: var(--color-orange);
+  text-shadow: 0 0 12px var(--color-orange-glow);
 }
 
 /* Lock body scroll when nav is open */
@@ -275,7 +311,7 @@ body.nav-open {
 }
 
 /* ─── Mobile ─── */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .btn-primary,
   .btn-secondary {
     font-size: 16px;
@@ -297,4 +333,39 @@ body.nav-open {
     margin-bottom: 16px;
   }
   .lb-entry { font-size: 14px; }
+}
+
+/* ─── Spectate responsive ─── */
+@media (max-width: 768px) {
+  .spectate-grid {
+    grid-template-columns: 1fr !important;
+    padding: 16px 20px !important;
+    gap: 16px !important;
+    overflow-y: auto !important;
+  }
+  .spectate-leaderboard {
+    display: none !important;
+  }
+  .spectate-racers {
+    grid-column: 1 / -1;
+  }
+  .spectate-header {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+  .spectate-header h1 {
+    font-size: 24px !important;
+  }
+  .spectate-powered-by {
+    font-size: 11px !important;
+  }
+  .spectate-tech-stack {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    justify-content: center;
+  }
+  .spectate-footer {
+    justify-content: center !important;
+  }
 }

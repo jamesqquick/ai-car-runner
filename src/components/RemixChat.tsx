@@ -229,18 +229,24 @@ const S: Record<string, React.CSSProperties> = {
   inputRow: {
     display: "flex",
     gap: 10,
+    alignItems: "flex-end",
   },
   promptInput: {
     flex: 1,
     fontFamily: "'Inter', system-ui, sans-serif",
     fontSize: 16,
+    lineHeight: 1.5,
     padding: "12px 16px",
     border: "1px solid rgba(255,255,255,0.1)",
-    borderRadius: 24,
+    borderRadius: 20,
     background: "rgba(255,255,255,0.04)",
     color: "#fff",
     outline: "none",
     transition: "border-color 0.2s",
+    resize: "none" as const,
+    minHeight: 48,
+    maxHeight: 120,
+    overflowY: "auto" as const,
   },
   sendBtn: {
     fontFamily: "'Orbitron', monospace",
@@ -641,9 +647,13 @@ function PipelineOverlay({
                 onClick={onClose}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "#fb923c";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 4px 20px rgba(249, 115, 22, 0.6), 0 0 40px rgba(249, 115, 22, 0.15)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "#f97316";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               >
                 Back to Chat
@@ -692,7 +702,22 @@ function ResultCard({ result }: { result: RemixResult }) {
   return (
     <div style={S.resultCard}>
       <div style={S.resultTitle}>{title}</div>
-      <a href={`/remix/${result.id}`} target="_blank" rel="noopener noreferrer" style={S.playLink}>
+      <a
+        href={`/remix/${result.id}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={S.playLink}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "#fb923c";
+          e.currentTarget.style.transform = "translateY(-2px)";
+          e.currentTarget.style.boxShadow = "0 4px 20px rgba(249, 115, 22, 0.6), 0 0 40px rgba(249, 115, 22, 0.15)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "#f97316";
+          e.currentTarget.style.transform = "translateY(0)";
+          e.currentTarget.style.boxShadow = "none";
+        }}
+      >
         Play Remix
       </a>
       {qrSvg && (
@@ -909,15 +934,25 @@ export function RemixChat() {
       {/* Input bar */}
       <div style={S.inputBar}>
         <div style={S.inputRow}>
-          <input
-            type="text"
+          <textarea
             style={S.promptInput}
             placeholder="Describe your remix..."
             maxLength={100}
             autoComplete="off"
+            rows={2}
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+              // Auto-resize to fit content
+              e.target.style.height = "auto";
+              e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
             onFocus={(e) => {
               e.currentTarget.style.borderColor = "rgba(249,115,22,0.4)";
             }}
@@ -930,10 +965,18 @@ export function RemixChat() {
             disabled={sending}
             onClick={handleSend}
             onMouseEnter={(e) => {
-              if (!sending) e.currentTarget.style.background = "#fb923c";
+              if (!sending) {
+                e.currentTarget.style.background = "#fb923c";
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 4px 20px rgba(249, 115, 22, 0.6), 0 0 40px rgba(249, 115, 22, 0.15)";
+              }
             }}
             onMouseLeave={(e) => {
-              if (!sending) e.currentTarget.style.background = "#f97316";
+              if (!sending) {
+                e.currentTarget.style.background = "#f97316";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "none";
+              }
             }}
           >
             Send

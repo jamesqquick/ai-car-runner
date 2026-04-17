@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
-import type { User, LeaderboardEntry } from "../lib/api";
-import { fetchLeaderboard } from "../lib/api";
-import { Leaderboard } from "./Leaderboard";
+import type { User } from "../lib/api";
 
 interface LobbyScreenProps {
   /** If set, this is a remix lobby */
@@ -31,13 +29,6 @@ const titleStyle: React.CSSProperties = {
   textShadow: "0 0 40px rgba(249, 115, 22, 0.4)",
   marginBottom: 4,
   textAlign: "center",
-};
-
-const playerNameStyle: React.CSSProperties = {
-  fontFamily: "'Inter', system-ui, sans-serif",
-  fontSize: 16,
-  color: "#888",
-  marginBottom: 16,
 };
 
 const crashResultStyle: React.CSSProperties = {
@@ -94,44 +85,7 @@ const checkboxStyle: React.CSSProperties = {
   height: 16,
 };
 
-const btnPrimaryStyle: React.CSSProperties = {
-  fontFamily: "'Orbitron', monospace",
-  fontSize: 20,
-  fontWeight: 700,
-  padding: "16px 0",
-  width: 320,
-  border: "none",
-  borderRadius: 6,
-  cursor: "pointer",
-  letterSpacing: 3,
-  textTransform: "uppercase",
-  textAlign: "center",
-  display: "block",
-  transition: "all 0.2s",
-  background: "#f97316",
-  color: "#000",
-  textDecoration: "none",
-};
 
-const btnSecondaryStyle: React.CSSProperties = {
-  fontFamily: "'Orbitron', monospace",
-  fontSize: 20,
-  fontWeight: 700,
-  padding: "16px 0",
-  width: 320,
-  border: "1px solid rgba(249, 115, 22, 0.3)",
-  borderRadius: 6,
-  cursor: "pointer",
-  letterSpacing: 3,
-  textTransform: "uppercase",
-  textAlign: "center",
-  display: "block",
-  transition: "all 0.2s",
-  background: "rgba(249, 115, 22, 0.1)",
-  color: "#f97316",
-  marginTop: 10,
-  textDecoration: "none",
-};
 
 export function LobbyScreen({
   remixId,
@@ -139,7 +93,6 @@ export function LobbyScreen({
   playPath = "/play",
 }: LobbyScreenProps) {
   const [user, setUser] = useState<User | null>(null);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [commentaryEnabled, setCommentaryEnabled] = useState(false);
 
   const isRemix = !!remixId;
@@ -176,16 +129,6 @@ export function LobbyScreen({
     }
   }, []);
 
-  // Poll leaderboard
-  useEffect(() => {
-    const poll = () => {
-      fetchLeaderboard(remixId).then(setLeaderboard).catch(() => {});
-    };
-    poll();
-    const interval = setInterval(poll, 10000);
-    return () => clearInterval(interval);
-  }, [remixId]);
-
   if (!user) {
     // Still loading from localStorage
     return null;
@@ -212,7 +155,6 @@ export function LobbyScreen({
   return (
     <div style={overlayStyle}>
       <h1 style={titleStyle}>{displayTitle}</h1>
-      <div style={playerNameStyle}>Playing as {user.name}</div>
 
       {hasCrash && (
         <div style={crashResultStyle}>
@@ -224,8 +166,6 @@ export function LobbyScreen({
           {congratsText && <div style={crashCongratsStyle}>{congratsText}</div>}
         </div>
       )}
-
-      <Leaderboard entries={leaderboard} currentUserName={user.name} maxEntries={10} />
 
       {!isRemix && (
         <label style={optionsStyle}>
@@ -239,16 +179,20 @@ export function LobbyScreen({
         </label>
       )}
 
-      <a href={playUrl} style={btnPrimaryStyle}>
+      <a href={playUrl} className="btn-primary">
         {hasCrash ? "Race Again" : "Start Race"}
+      </a>
+
+      <a href="/leaderboard" className="btn-secondary">
+        View High Scores
       </a>
 
       {!isRemix && (
         <>
-          <a href="/remix" style={btnSecondaryStyle}>
+          <a href="/remix" className="btn-secondary">
             Remix This Game
           </a>
-          <a href="/gallery" style={btnSecondaryStyle}>
+          <a href="/gallery" className="btn-secondary">
             Browse Remixes
           </a>
         </>
