@@ -325,21 +325,38 @@
       height: 16px;
       cursor: pointer;
     }
-    #lobby-start-btn {
+    #lobby-start-btn,
+    .remix-link-btn {
       font-family: 'Orbitron', monospace;
       font-size: 18px;
       font-weight: 700;
-      padding: 16px 50px;
+      padding: 16px 0;
+      width: 320px;
       border: none;
       border-radius: 6px;
-      background: #f97316;
-      color: #000;
       cursor: pointer;
       letter-spacing: 3px;
       text-transform: uppercase;
-      transition: background 0.2s, transform 0.1s;
+      text-decoration: none;
+      text-align: center;
+      display: block;
+      transition: all 0.2s;
+    }
+    #lobby-start-btn {
+      background: #f97316;
+      color: #000;
     }
     #lobby-start-btn:hover { background: #fb923c; transform: scale(1.02); }
+    .remix-link-btn {
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      background: rgba(249, 115, 22, 0.1);
+      color: #f97316;
+      margin-top: 10px;
+    }
+    .remix-link-btn:hover {
+      background: rgba(249, 115, 22, 0.2);
+      border-color: rgba(249, 115, 22, 0.5);
+    }
 
     /* AI Commentary overlay */
     #commentary-overlay {
@@ -479,11 +496,13 @@
       .lobby-toggle {
         font-size: 12px;
       }
-      #lobby-start-btn {
+      #lobby-start-btn,
+      .remix-link-btn {
         font-size: 14px;
-        padding: 14px 36px;
-        margin-bottom: 30px;
+        padding: 14px 0;
+        width: 260px;
       }
+      #lobby-start-btn { margin-bottom: 8px; }
 
       /* HUD */
       #hud {
@@ -615,6 +634,8 @@
       </label>
     </div>
     <button id="lobby-start-btn">Start Race</button>
+    <a id="remix-link" href="/remix/" class="remix-link-btn">Remix This Game</a>
+    <a id="gallery-link" href="/gallery/" class="remix-link-btn">Browse Remixes</a>
   </div>
 
   <script type="module" src="/src/game.ts"></script>

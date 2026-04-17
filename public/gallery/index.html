@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gallery — Cloudflare Car Runner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #050510;
+      color: #fff;
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .header-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 16px;
+      font-weight: 900;
+      color: #f97316;
+      letter-spacing: 3px;
+    }
+    .header-links {
+      display: flex;
+      gap: 16px;
+    }
+    .header-link {
+      font-size: 12px;
+      color: #555;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .header-link:hover { color: #f97316; }
+
+    /* Page content */
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 32px 24px 60px;
+    }
+    .page-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 28px;
+      font-weight: 900;
+      color: #f97316;
+      text-shadow: 0 0 40px rgba(249, 115, 22, 0.4);
+      letter-spacing: 4px;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .page-subtitle {
+      font-size: 13px;
+      color: #555;
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      color: #555;
+      font-size: 14px;
+      padding: 40px 0;
+    }
+    .loading-spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 2px solid rgba(249, 115, 22, 0.2);
+      border-top-color: #f97316;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      color: #555;
+      font-size: 14px;
+      padding: 60px 0;
+    }
+    .empty-cta {
+      display: inline-block;
+      margin-top: 16px;
+      font-family: 'Orbitron', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 10px 24px;
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      border-radius: 6px;
+      background: rgba(249, 115, 22, 0.1);
+      color: #f97316;
+      text-decoration: none;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: all 0.2s;
+    }
+    .empty-cta:hover {
+      background: rgba(249, 115, 22, 0.2);
+      border-color: rgba(249, 115, 22, 0.5);
+    }
+
+    /* Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    /* Card */
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 20px;
+      transition: border-color 0.2s, transform 0.2s;
+      display: flex;
+      flex-direction: column;
+    }
+    .card:hover {
+      border-color: rgba(249, 115, 22, 0.25);
+      transform: translateY(-2px);
+    }
+    .card-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: #f97316;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .card-prompt {
+      font-size: 13px;
+      color: #888;
+      line-height: 1.5;
+      margin-bottom: 12px;
+      flex: 1;
+    }
+    .card-colors {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .color-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .card-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #444;
+      margin-bottom: 14px;
+    }
+    .card-creator {
+      color: #666;
+    }
+    .card-mechanic {
+      font-family: 'Orbitron', monospace;
+      font-size: 9px;
+      letter-spacing: 1px;
+      color: #555;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+      padding: 3px 8px;
+      text-transform: uppercase;
+    }
+    .card-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .card-btn {
+      flex: 1;
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 10px 0;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      text-decoration: none;
+      text-align: center;
+      display: block;
+      transition: all 0.2s;
+    }
+    .card-btn-play {
+      background: #f97316;
+      color: #000;
+    }
+    .card-btn-play:hover { background: #fb923c; }
+
+    /* Mobile */
+    @media (max-width: 600px) {
+      .page { padding: 20px 16px 40px; }
+      .page-title { font-size: 22px; }
+      .grid { grid-template-columns: 1fr; }
+      .header-title { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-title">GALLERY</div>
+    <div class="header-links">
+      <a href="/" class="header-link">Play Game</a>
+      <a href="/remix/" class="header-link">Create Remix</a>
+    </div>
+  </div>
+
+  <div class="page">
+    <h1 class="page-title">Community Remixes</h1>
+    <p class="page-subtitle">Browse and play games remixed by the community</p>
+
+    <div id="content">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <div>Loading remixes...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const content = document.getElementById("content");
+
+    async function loadRemixes() {
+      try {
+        const res = await fetch("/api/remixes");
+        if (!res.ok) throw new Error("Failed to load");
+
+        const data = await res.json();
+        const remixes = data.remixes || [];
+
+        if (remixes.length === 0) {
+          content.innerHTML = `
+            <div class="empty">
+              <div>No remixes yet. Be the first!</div>
+              <a href="/remix/" class="empty-cta">Create a Remix</a>
+            </div>
+          `;
+          return;
+        }
+
+        const cards = remixes.map((r) => {
+          const config = r.config || {};
+          const title = escapeHtml(config.title || "Untitled Remix");
+          const prompt = escapeHtml(r.prompt || "");
+          const creator = escapeHtml(r.creator_name || "Anonymous");
+          const mechanic = config.specialMechanic && config.specialMechanic !== "none"
+            ? config.specialMechanic.replace(/_/g, " ")
+            : null;
+          const date = r.created_at
+            ? new Date(r.created_at + "Z").toLocaleDateString()
+            : "";
+
+          // Collect theme colors for preview dots
+          const colors = [
+            config.skyColor,
+            config.roadColor,
+            config.carColor,
+            config.curbColor,
+            ...(config.obstacleColors || []),
+          ].filter(Boolean).slice(0, 6);
+
+          const colorDots = colors
+            .map((c) => `<div class="color-dot" style="background:${escapeHtml(c)}"></div>`)
+            .join("");
+
+          const mechanicBadge = mechanic
+            ? `<span class="card-mechanic">${escapeHtml(mechanic)}</span>`
+            : "";
+
+          return `
+            <div class="card">
+              <div class="card-title">${title}</div>
+              <div class="card-prompt">"${prompt}"</div>
+              <div class="card-colors">${colorDots}</div>
+              <div class="card-meta">
+                <span class="card-creator">by ${creator} &middot; ${date}</span>
+                ${mechanicBadge}
+              </div>
+              <div class="card-actions">
+                <a class="card-btn card-btn-play" href="/remix/${escapeHtml(r.id)}">Play</a>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        content.innerHTML = `<div class="grid">${cards}</div>`;
+      } catch (err) {
+        content.innerHTML = `
+          <div class="empty">
+            <div>Failed to load remixes. Try refreshing.</div>
+          </div>
+        `;
+      }
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    loadRemixes();
+  </script>
+</body>
+</html>

@@ -23,6 +23,48 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
+    // ─── GET /remix/ — serve the remix creation page ────────
+    if ((path === "/remix" || path === "/remix/") && request.method === "GET") {
+      const assetUrl = new URL("/remix/index.html", request.url);
+      return env.ASSETS.fetch(new Request(assetUrl.toString()));
+    }
+
+    // ─── GET /remix/:id — serve themed game ─────────────────
+    const remixMatch = path.match(/^\/remix\/([a-zA-Z0-9]+)$/);
+    if (remixMatch && request.method === "GET") {
+      const remixId = remixMatch[1];
+
+      const remix = await env.DB.prepare(
+        "SELECT id, prompt, config FROM remixes WHERE id = ?"
+      )
+        .bind(remixId)
+        .first<{ id: string; prompt: string; config: string }>();
+
+      if (!remix) {
+        return new Response("Remix not found", { status: 404 });
+      }
+
+      // Fetch the base HTML from assets
+      const assetUrl = new URL("/", request.url);
+      const assetResponse = await env.ASSETS.fetch(new Request(assetUrl.toString()));
+      let html = await assetResponse.text();
+
+      // Parse the stored config and add id/prompt
+      const config = JSON.parse(remix.config);
+      config.id = remix.id;
+      config.prompt = remix.prompt;
+
+      // Inject the config before the game script
+      const configScript = `<script>window.__REMIX_CONFIG__ = ${JSON.stringify(config)};</script>`;
+      html = html.replace("</head>", `${configScript}\n</head>`);
+
+      return new Response(html, {
+        headers: {
+          "Content-Type": "text/html;charset=utf-8",
+        },
+      });
+    }
+
     // ─── WebSocket: /ws/spectator ────────────────────────────
     if (path === "/ws/spectator") {
       const id = env.SPECTATOR_HUB.idFromName("global");
@@ -74,14 +116,14 @@ export default {
 
     // ─── POST /api/score ─────────────────────────────────────
     if (path === "/api/score" && request.method === "POST") {
-      let body: { user_id?: string; score?: number };
+      let body: { user_id?: string; score?: number; remix_id?: string };
       try {
         body = await request.json();
       } catch {
         return errorResponse("Invalid JSON");
       }
 
-      const { user_id, score } = body;
+      const { user_id, score, remix_id } = body;
       if (!user_id || typeof user_id !== "string") {
         return errorResponse("user_id is required");
       }
@@ -97,18 +139,26 @@ export default {
       }
 
       const roundedScore = Math.floor(score);
+      const remixIdValue = remix_id || null;
 
       await env.DB.prepare(
-        "INSERT INTO scores (user_id, score) VALUES (?, ?)"
+        "INSERT INTO scores (user_id, score, remix_id) VALUES (?, ?, ?)"
       )
-        .bind(user_id, roundedScore)
+        .bind(user_id, roundedScore, remixIdValue)
         .run();
 
-      const rankResult = await env.DB.prepare(
-        "SELECT COUNT(*) as rank FROM scores WHERE score > ?"
-      )
-        .bind(roundedScore)
-        .first<{ rank: number }>();
+      // Rank scoped to the same game (main or specific remix)
+      const rankResult = remixIdValue
+        ? await env.DB.prepare(
+            "SELECT COUNT(*) as rank FROM scores WHERE remix_id = ? AND score > ?"
+          )
+            .bind(remixIdValue, roundedScore)
+            .first<{ rank: number }>()
+        : await env.DB.prepare(
+            "SELECT COUNT(*) as rank FROM scores WHERE remix_id IS NULL AND score > ?"
+          )
+            .bind(roundedScore)
+            .first<{ rank: number }>();
 
       return jsonResponse({
         score: roundedScore,
@@ -122,16 +172,29 @@ export default {
         parseInt(url.searchParams.get("limit") || "10", 10),
         50
       );
+      const remixId = url.searchParams.get("remix_id");
 
-      const results = await env.DB.prepare(
-        `SELECT s.score, s.created_at, u.name
-         FROM scores s
-         JOIN users u ON u.id = s.user_id
-         ORDER BY s.score DESC
-         LIMIT ?`
-      )
-        .bind(limit)
-        .all<{ score: number; created_at: string; name: string }>();
+      const results = remixId
+        ? await env.DB.prepare(
+            `SELECT s.score, s.created_at, u.name
+             FROM scores s
+             JOIN users u ON u.id = s.user_id
+             WHERE s.remix_id = ?
+             ORDER BY s.score DESC
+             LIMIT ?`
+          )
+            .bind(remixId, limit)
+            .all<{ score: number; created_at: string; name: string }>()
+        : await env.DB.prepare(
+            `SELECT s.score, s.created_at, u.name
+             FROM scores s
+             JOIN users u ON u.id = s.user_id
+             WHERE s.remix_id IS NULL
+             ORDER BY s.score DESC
+             LIMIT ?`
+          )
+            .bind(limit)
+            .all<{ score: number; created_at: string; name: string }>();
 
       return jsonResponse({
         entries: results.results || [],
@@ -195,6 +258,163 @@ export default {
         console.error("AI commentary error:", err);
         return jsonResponse({ commentary: "" });
       }
+    }
+
+    // ─── POST /api/remix ───────────────────────────────────────
+    if (path === "/api/remix" && request.method === "POST") {
+      let body: { prompt?: string; user_id?: string };
+      try {
+        body = await request.json();
+      } catch {
+        return errorResponse("Invalid JSON");
+      }
+
+      const { prompt, user_id } = body;
+      if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
+        return errorResponse("Prompt is required");
+      }
+      if (!user_id || typeof user_id !== "string") {
+        return errorResponse("user_id is required");
+      }
+      if (prompt.length > 100) {
+        return errorResponse("Prompt must be 100 characters or less");
+      }
+
+      const remixSystemPrompt = `You generate JSON configs for a car racing game remix. The user describes a theme and you return ONLY valid JSON matching this exact schema — no markdown, no explanation, just the JSON object:
+
+{
+  "title": "short name, 2-3 words",
+  "carColor": "#hex",
+  "roadColor": "#hex",
+  "skyColor": "#hex",
+  "fogColor": "#hex (usually same as skyColor)",
+  "curbColor": "#hex",
+  "buildingHue": 0.0-1.0,
+  "lightingColor": "#hex",
+  "speedLineColor": "#hex",
+  "obstacleColors": ["#hex", "#hex", "#hex"],
+  "obstacleNames": { "car": "name", "barrier": "name", "cone": "name" },
+  "initialSpeed": 15-25,
+  "maxSpeed": 40-70,
+  "speedIncrement": 0.5-1.5,
+  "laneCount": 3-5,
+  "minObstacleGap": 6-12,
+  "multiLaneChance": 0.2-0.5,
+  "triLaneRampMax": 0.1-0.3,
+  "specialMechanic": "none" | "moving_obstacles" | "lives" | "countdown",
+  "lives": 3 (only if specialMechanic is "lives"),
+  "countdownSeconds": 30-90 (only if specialMechanic is "countdown"),
+  "obstacleMovementSpeed": 1-4 (only if specialMechanic is "moving_obstacles")
+}
+
+Rules:
+- All colors must be valid hex strings starting with #
+- Choose colors that match the user's theme
+- Pick a specialMechanic that fits the theme (or "none")
+- Be creative with obstacle names to match the theme
+- Return ONLY the JSON object, nothing else`;
+
+      try {
+        const result = await env.AI.run("@cf/meta/llama-3.1-8b-instruct", {
+          messages: [
+            { role: "system", content: remixSystemPrompt },
+            { role: "user", content: prompt.trim() },
+          ],
+          max_tokens: 500,
+          temperature: 0.7,
+        });
+
+        const responseText = ((result as { response?: string }).response || "").trim();
+
+        // Extract JSON from response (handle potential markdown wrapping)
+        let jsonStr = responseText;
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonStr = jsonMatch[0];
+        }
+
+        let config: Record<string, unknown>;
+        try {
+          config = JSON.parse(jsonStr);
+        } catch {
+          return errorResponse("Failed to generate valid remix config", 500);
+        }
+
+        // Generate a short ID
+        const remixId = nanoid(8);
+
+        // Store in D1
+        await env.DB.prepare(
+          "INSERT INTO remixes (id, user_id, prompt, config) VALUES (?, ?, ?, ?)"
+        )
+          .bind(remixId, user_id, prompt.trim(), JSON.stringify(config))
+          .run();
+
+        return jsonResponse({
+          id: remixId,
+          config,
+        });
+      } catch (err) {
+        console.error("Remix generation error:", err);
+        return errorResponse("Failed to generate remix", 500);
+      }
+    }
+
+    // ─── GET /api/remixes — list all remixes ────────────────
+    if ((path === "/api/remixes" || path === "/api/remixes/") && request.method === "GET") {
+      const limit = Math.min(
+        parseInt(url.searchParams.get("limit") || "50", 10),
+        100
+      );
+      const offset = Math.max(
+        parseInt(url.searchParams.get("offset") || "0", 10),
+        0
+      );
+
+      const results = await env.DB.prepare(
+        `SELECT r.id, r.prompt, r.config, r.created_at, u.name as creator_name
+         FROM remixes r
+         JOIN users u ON u.id = r.user_id
+         ORDER BY r.created_at DESC
+         LIMIT ? OFFSET ?`
+      )
+        .bind(limit, offset)
+        .all<{ id: string; prompt: string; config: string; created_at: string; creator_name: string }>();
+
+      const remixes = (results.results || []).map((r) => ({
+        id: r.id,
+        prompt: r.prompt,
+        config: JSON.parse(r.config),
+        created_at: r.created_at,
+        creator_name: r.creator_name,
+      }));
+
+      return jsonResponse({ remixes });
+    }
+
+    // ─── GET /api/remix/:id ──────────────────────────────────
+    if (path.startsWith("/api/remix/") && request.method === "GET") {
+      const remixId = path.replace("/api/remix/", "");
+      if (!remixId) {
+        return errorResponse("Remix ID is required");
+      }
+
+      const remix = await env.DB.prepare(
+        "SELECT id, prompt, config, created_at FROM remixes WHERE id = ?"
+      )
+        .bind(remixId)
+        .first<{ id: string; prompt: string; config: string; created_at: string }>();
+
+      if (!remix) {
+        return errorResponse("Remix not found", 404);
+      }
+
+      return jsonResponse({
+        id: remix.id,
+        prompt: remix.prompt,
+        config: JSON.parse(remix.config),
+        created_at: remix.created_at,
+      });
     }
 
     // 404 for unknown API/WS routes

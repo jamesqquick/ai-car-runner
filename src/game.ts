@@ -1,7 +1,14 @@
 import * as THREE from "three";
+import { type RemixConfig, DEFAULT_CONFIG } from "./remix-config";
+
+// ─── REMIX CONFIG ────────────────────────────────────────────
+const RC: RemixConfig = {
+  ...DEFAULT_CONFIG,
+  ...((window as any).__REMIX_CONFIG__ || {}),
+};
 
 // ─── CONSTANTS ───────────────────────────────────────────────
-const LANE_COUNT = 5;
+const LANE_COUNT = RC.laneCount;
 const LANE_WIDTH = 2.5;
 const ROAD_WIDTH = LANE_COUNT * LANE_WIDTH;
 const LANE_POSITIONS: number[] = [];
@@ -9,13 +16,13 @@ for (let i = 0; i < LANE_COUNT; i++) {
   LANE_POSITIONS.push((i - Math.floor(LANE_COUNT / 2)) * LANE_WIDTH);
 }
 
-const INITIAL_SPEED = 18;
-const MAX_SPEED = 55;
-const SPEED_INCREMENT = 0.8;
+const INITIAL_SPEED = RC.initialSpeed;
+const MAX_SPEED = RC.maxSpeed;
+const SPEED_INCREMENT = RC.speedIncrement;
 const LANE_SWITCH_SPEED = 12;
 
 const OBSTACLE_SPAWN_DISTANCE = 120;
-const MIN_OBSTACLE_GAP = 8;
+const MIN_OBSTACLE_GAP = RC.minObstacleGap;
 
 const CAR_WIDTH = 1.8;
 const CAR_HEIGHT = 0.8;
@@ -39,11 +46,14 @@ let leaderboardData: LeaderboardEntry[] = [];
 
 async function fetchLeaderboard(): Promise<void> {
   try {
-    const res = await fetch("/api/leaderboard?limit=10");
+    const params = new URLSearchParams({ limit: "10" });
+    if (RC.id) params.set("remix_id", RC.id);
+    const res = await fetch(`/api/leaderboard?${params}`);
     if (res.ok) {
       const data = await res.json() as { entries: LeaderboardEntry[] };
       leaderboardData = data.entries;
       renderHUDLeaderboard();
+      renderLobbyLeaderboard();
     }
   } catch {
     // silent fail
@@ -69,12 +79,14 @@ function renderHUDLeaderboard(): void {
     .join("");
 }
 
-async function submitScore(userId: string, finalScore: number): Promise<number | null> {
+async function submitScore(userId: string, finalScore: number, remixId?: string): Promise<number | null> {
   try {
+    const payload: Record<string, unknown> = { user_id: userId, score: finalScore };
+    if (remixId) payload.remix_id = remixId;
     const res = await fetch("/api/score", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: userId, score: finalScore }),
+      body: JSON.stringify(payload),
     });
     if (res.ok) {
       const data = await res.json() as { score: number; rank: number };
@@ -119,6 +131,8 @@ loginForm.addEventListener("submit", async (e) => {
       return;
     }
     currentUser = { id: data.id, name: data.name, email: data.email };
+    // Save to localStorage so the remix page can read the user ID
+    localStorage.setItem("car_runner_user", JSON.stringify(currentUser));
     showLobby();
   } catch {
     loginError.textContent = "Connection error";
@@ -139,6 +153,8 @@ function showLobby(crashScore?: number, crashRank?: number | null): void {
   lobbyScreen.style.display = "flex";
   gameState = "start";
 
+  const isRemix = !!RC.id;
+
   // Show player name
   if (currentUser) {
     lobbyPlayerName.textContent = `Playing as ${currentUser.name}`;
@@ -153,7 +169,7 @@ function showLobby(crashScore?: number, crashRank?: number | null): void {
     const rankEl = document.getElementById("lobby-crash-rank")!;
     const congratsEl = document.getElementById("lobby-crash-congrats")!;
 
-    if (crashRank) {
+    if (!isRemix && crashRank) {
       rankEl.textContent = `Rank #${crashRank}`;
       if (crashRank === 1) {
         congratsEl.textContent = "NEW HIGH SCORE!";
@@ -171,6 +187,16 @@ function showLobby(crashScore?: number, crashRank?: number | null): void {
   } else {
     crashResult.classList.remove("visible");
     lobbyStartBtn.textContent = "Start Race";
+  }
+
+  // Hide remix/gallery buttons and commentary toggle on remix pages (but keep leaderboard)
+  const remixLink = document.getElementById("remix-link");
+  const galleryLink = document.getElementById("gallery-link");
+  const lobbyOptions = document.querySelector(".lobby-options") as HTMLElement | null;
+  if (isRemix) {
+    if (remixLink) remixLink.style.display = "none";
+    if (galleryLink) galleryLink.style.display = "none";
+    if (lobbyOptions) lobbyOptions.style.display = "none";
   }
 
   // Render leaderboard in lobby
@@ -206,9 +232,30 @@ commentaryToggle.addEventListener("change", () => {
   ttsEnabled = commentaryToggle.checked;
 });
 
+// ─── LOAD REMIX FROM URL ─────────────────────────────────────
+// If we're on /remix/:id, the config is injected via window.__REMIX_CONFIG__
+// Update the title if this is a remix
+if (RC.id && RC.title) {
+  const titles = document.querySelectorAll("h1");
+  titles.forEach((h1) => {
+    h1.textContent = RC.title.toUpperCase();
+  });
+}
+
+// ─── AUTO-LOGIN FROM LOCALSTORAGE ────────────────────────────
+try {
+  const storedUser = localStorage.getItem("car_runner_user");
+  if (storedUser) {
+    currentUser = JSON.parse(storedUser) as User;
+    // Skip login screen, go straight to lobby
+    showLobby();
+  }
+} catch {
+  // Invalid data in localStorage, ignore
+}
+
 // Fetch leaderboard on page load
 fetchLeaderboard();
-// Poll leaderboard every 10s
 setInterval(fetchLeaderboard, 10000);
 
 // ─── SPECTATOR HUB WEBSOCKET ────────────────────────────────
@@ -268,8 +315,10 @@ function stopSpectatorUpdates(): void {
   }
 }
 
-// Connect on page load
-connectSpectatorHub();
+// Connect on page load (skip for remixes)
+if (!RC.id) {
+  connectSpectatorHub();
+}
 
 // ─── AI COMMENTARY ───────────────────────────────────────────
 const commentaryOverlay = document.getElementById("commentary-overlay")!;
@@ -284,8 +333,8 @@ async function requestCommentary(
   event: string,
   context: Record<string, unknown> = {}
 ): Promise<void> {
-  // Skip if commentary is disabled or a request is already pending
-  if (!commentaryEnabled || commentaryInFlight) return;
+  // Skip if commentary is disabled, on a remix, or a request is already pending
+  if (!commentaryEnabled || !!RC.id || commentaryInFlight) return;
   commentaryInFlight = true;
 
   try {
@@ -375,6 +424,10 @@ let gameTime = 0;
 let shakeIntensity = 0;
 const shakeDecay = 0.92;
 
+// Special mechanics
+let livesRemaining = RC.specialMechanic === "lives" ? (RC.lives || 3) : 0;
+let countdownRemaining = RC.specialMechanic === "countdown" ? (RC.countdownSeconds || 60) : 0;
+
 // Crash effect
 let crashFlashAlpha = 0;
 
@@ -389,8 +442,8 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x0a0a1e, 0.012);
-scene.background = new THREE.Color(0x0a0a1e);
+scene.fog = new THREE.FogExp2(new THREE.Color(RC.fogColor).getHex(), 0.012);
+scene.background = new THREE.Color(RC.skyColor);
 
 const camera = new THREE.PerspectiveCamera(
   60,
@@ -434,7 +487,7 @@ scene.add(starfield);
 const ambientLight = new THREE.AmbientLight(0x303050, 0.6);
 scene.add(ambientLight);
 
-const dirLight = new THREE.DirectionalLight(0xfff0dd, 0.8);
+const dirLight = new THREE.DirectionalLight(new THREE.Color(RC.lightingColor).getHex(), 0.8);
 dirLight.position.set(5, 15, 5);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.set(2048, 2048);
@@ -471,7 +524,7 @@ speedLineGeo.setAttribute(
   new THREE.BufferAttribute(speedLinePositions, 3)
 );
 const speedLineMat = new THREE.PointsMaterial({
-  color: 0xaaccff,
+  color: new THREE.Color(RC.speedLineColor).getHex(),
   size: 0.08,
   transparent: true,
   opacity: 0,
@@ -555,10 +608,12 @@ function updateCrashParticles(dt: number): void {
 function createCar(): THREE.Group {
   const group = new THREE.Group();
 
+  const carColorHex = new THREE.Color(RC.carColor).getHex();
+
   // Main body — lower section
   const bodyGeo = new THREE.BoxGeometry(CAR_WIDTH, CAR_HEIGHT * 0.6, CAR_LENGTH);
   const bodyMat = new THREE.MeshStandardMaterial({
-    color: 0xf97316,
+    color: carColorHex,
     metalness: 0.7,
     roughness: 0.2,
   });
@@ -570,7 +625,7 @@ function createCar(): THREE.Group {
   // Hood (front slopes down slightly)
   const hoodGeo = new THREE.BoxGeometry(CAR_WIDTH * 0.95, CAR_HEIGHT * 0.3, CAR_LENGTH * 0.35);
   const hoodMat = new THREE.MeshStandardMaterial({
-    color: 0xf97316,
+    color: carColorHex,
     metalness: 0.7,
     roughness: 0.2,
   });
@@ -696,10 +751,10 @@ const ROAD_SEGMENT_COUNT = 5;
 function createRoadSegment(zOffset: number): THREE.Group {
   const group = new THREE.Group();
 
-  // Road surface — dark asphalt with slight sheen
+  // Road surface
   const roadGeo = new THREE.PlaneGeometry(ROAD_WIDTH + 2, ROAD_SEGMENT_LENGTH);
   const roadMat = new THREE.MeshStandardMaterial({
-    color: 0x222230,
+    color: new THREE.Color(RC.roadColor).getHex(),
     roughness: 0.7,
     metalness: 0.15,
   });
@@ -744,11 +799,12 @@ function createRoadSegment(zOffset: number): THREE.Group {
     group.add(line);
   });
 
-  // Curbs — orange/white alternating look
+  // Curbs
+  const curbColorHex = new THREE.Color(RC.curbColor).getHex();
   const curbGeo = new THREE.BoxGeometry(0.3, 0.15, ROAD_SEGMENT_LENGTH);
   const curbMat = new THREE.MeshStandardMaterial({
-    color: 0xf97316,
-    emissive: 0xf97316,
+    color: curbColorHex,
+    emissive: curbColorHex,
     emissiveIntensity: 0.15,
   });
   [-1, 1].forEach((side) => {
@@ -813,7 +869,7 @@ for (let i = 0; i < ROAD_SEGMENT_COUNT; i++) {
 }
 
 // ─── OBSTACLES ───────────────────────────────────────────────
-const OBSTACLE_COLORS = [0xef4444, 0x3b82f6, 0x8b5cf6, 0x10b981, 0xeab308];
+const OBSTACLE_COLORS = RC.obstacleColors.map((c) => new THREE.Color(c).getHex());
 
 function createObstacle(lane: number, z: number): THREE.Object3D {
   const type = Math.random();
@@ -935,8 +991,8 @@ function spawnObstacles(): void {
 
   while (lastObstacleZ > spawnLimit) {
     const difficulty = Math.min(distanceTraveled / 500, 1);
-    const multiLaneChance = 0.35 + difficulty * 0.35;
-    const triLaneChance = difficulty * 0.2;
+    const multiLaneChance = RC.multiLaneChance + difficulty * RC.multiLaneChance;
+    const triLaneChance = difficulty * RC.triLaneRampMax;
 
     let blockedCount = 1;
     if (Math.random() < triLaneChance && LANE_COUNT > 3) {
@@ -982,7 +1038,7 @@ function createBuilding(side: number, z: number): THREE.Group {
 
   // Main structure
   const geo = new THREE.BoxGeometry(width, height, depth);
-  const hue = 0.6 + Math.random() * 0.15;
+  const hue = RC.buildingHue + Math.random() * 0.15;
   const mat = new THREE.MeshStandardMaterial({
     color: new THREE.Color().setHSL(hue, 0.12, 0.08 + Math.random() * 0.06),
     roughness: 0.85,
@@ -1274,6 +1330,8 @@ function startGame(): void {
   lastNearMissZ = 0;
   lastSpeedMilestone = 0;
   lastDistanceMilestone = 0;
+  livesRemaining = RC.specialMechanic === "lives" ? (RC.lives || 3) : 0;
+  countdownRemaining = RC.specialMechanic === "countdown" ? (RC.countdownSeconds || 60) : 0;
 
   car.position.set(LANE_POSITIONS[currentLane], 0, 0);
   car.rotation.z = 0;
@@ -1309,30 +1367,31 @@ async function gameOver(): Promise<void> {
   triggerCrashEffect();
 
   const finalScore = Math.floor(score);
+  const isRemix = !!RC.id;
 
   // Submit score
   let rank: number | null = null;
   if (currentUser) {
-    rank = await submitScore(currentUser.id, finalScore);
+    rank = await submitScore(currentUser.id, finalScore, RC.id || undefined);
   }
 
-  // Notify spectator hub
-  stopSpectatorUpdates();
-  sendSpectatorEvent({
-    type: "race_end",
-    userId: currentUser?.id || "",
-    name: currentUser?.name || "",
-    score: finalScore,
-    rank: rank || 0,
-  });
+  // Notify spectator hub (skip for remixes)
+  if (!isRemix) {
+    stopSpectatorUpdates();
+    sendSpectatorEvent({
+      type: "race_end",
+      userId: currentUser?.id || "",
+      name: currentUser?.name || "",
+      score: finalScore,
+      rank: rank || 0,
+    });
+    sendSpectatorEvent({
+      type: "leaderboard_update",
+      entries: leaderboardData,
+    });
+  }
 
-  // Send updated leaderboard to spectators
-  sendSpectatorEvent({
-    type: "leaderboard_update",
-    entries: leaderboardData,
-  });
-
-  // AI Commentary: crash / top 10
+  // AI Commentary
   if (rank !== null && rank <= 10) {
     requestCommentary("top10", {
       name: currentUser?.name || "Racer",
@@ -1436,9 +1495,39 @@ function animate(): void {
       }
     });
 
+    // Moving obstacles mechanic
+    if (RC.specialMechanic === "moving_obstacles") {
+      const moveSpeed = RC.obstacleMovementSpeed || 2;
+      for (const obs of obstacles) {
+        if (!obs.userData.moveDir) {
+          obs.userData.moveDir = Math.random() < 0.5 ? -1 : 1;
+        }
+        obs.position.x += obs.userData.moveDir * moveSpeed * dt;
+        // Bounce off road edges
+        if (obs.position.x > ROAD_WIDTH / 2 - 1) obs.userData.moveDir = -1;
+        if (obs.position.x < -ROAD_WIDTH / 2 + 1) obs.userData.moveDir = 1;
+      }
+    }
+
     // Collision
     if (checkCollision()) {
-      gameOver();
+      if (RC.specialMechanic === "lives" && livesRemaining > 1) {
+        livesRemaining--;
+        shakeIntensity = 0.4;
+        // Brief invincibility — skip collision for 0.5s by moving car
+        // Just flash and continue
+      } else {
+        gameOver();
+      }
+    }
+
+    // Countdown mechanic
+    if (RC.specialMechanic === "countdown") {
+      countdownRemaining -= dt;
+      if (countdownRemaining <= 0) {
+        // Survived the countdown — end with current score
+        gameOver();
+      }
     }
 
     // AI Commentary: speed milestones (every 50 km/h)
