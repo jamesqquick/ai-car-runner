@@ -1,0 +1,8 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+import { AboutPage } from '../components/AboutPage';
+---
+
+<PageLayout title="About — Cloudflare Car Runner">
+  <AboutPage client:only="react" />
+</PageLayout>

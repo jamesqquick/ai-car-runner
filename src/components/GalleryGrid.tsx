@@ -363,10 +363,14 @@ export function GalleryGrid() {
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "rgba(249,115,22,0.2)";
                 e.currentTarget.style.borderColor = "rgba(249,115,22,0.5)";
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 4px 20px rgba(249, 115, 22, 0.15)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "rgba(249,115,22,0.1)";
                 e.currentTarget.style.borderColor = "rgba(249,115,22,0.3)";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "none";
               }}
             >
               Create a Remix

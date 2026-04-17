@@ -135,29 +135,31 @@ export function LeaderboardPage() {
           ) : entries.length === 0 ? (
             <div style={emptyStyle}>No scores yet — be the first to race!</div>
           ) : (
-            entries.map((entry, i) => {
-              const isYou = user != null && entry.name === user.name;
-              return (
-                <div
-                  key={`${entry.name}-${i}`}
-                  style={{
-                    ...(isYou ? entryYouStyle : entryStyle),
-                    background: isYou
-                      ? "rgba(249, 115, 22, 0.08)"
-                      : i % 2 === 0
-                        ? "rgba(255, 255, 255, 0.02)"
-                        : "transparent",
-                  }}
-                >
-                  <span style={rankStyle}>#{i + 1}</span>
-                  <span style={nameStyle}>
-                    {entry.name}
-                    {isYou ? " (you)" : ""}
-                  </span>
-                  <span style={scoreStyle}>{entry.score.toLocaleString()}</span>
-                </div>
-              );
-            })
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {entries.map((entry, i) => {
+                const isYou = user != null && entry.name === user.name;
+                return (
+                  <div
+                    key={`${entry.name}-${i}`}
+                    style={{
+                      ...(isYou ? entryYouStyle : entryStyle),
+                      background: isYou
+                        ? "rgba(249, 115, 22, 0.08)"
+                        : i % 2 === 0
+                          ? "rgba(255, 255, 255, 0.02)"
+                          : "transparent",
+                    }}
+                  >
+                    <span style={rankStyle}>#{i + 1}</span>
+                    <span style={nameStyle}>
+                      {entry.name}
+                      {isYou ? " (you)" : ""}
+                    </span>
+                    <span style={scoreStyle}>{entry.score.toLocaleString()}</span>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>

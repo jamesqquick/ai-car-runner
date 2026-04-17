@@ -167,18 +167,6 @@ export function LobbyScreen({
         </div>
       )}
 
-      {!isRemix && (
-        <label style={optionsStyle}>
-          <input
-            type="checkbox"
-            style={checkboxStyle}
-            checked={commentaryEnabled}
-            onChange={(e) => handleCommentaryToggle(e.target.checked)}
-          />
-          AI Commentary
-        </label>
-      )}
-
       <a href={playUrl} className="btn-primary">
         {hasCrash ? "Race Again" : "Start Race"}
       </a>
